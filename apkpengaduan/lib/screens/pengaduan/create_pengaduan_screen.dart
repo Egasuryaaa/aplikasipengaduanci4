@@ -2,7 +2,7 @@ import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:image_picker/image_picker.dart';
-import '../providers/pengaduan_provider.dart';
+import '../../providers/pengaduan_provider.dart';
 
 class CreatePengaduanScreen extends StatefulWidget {
   const CreatePengaduanScreen({super.key});

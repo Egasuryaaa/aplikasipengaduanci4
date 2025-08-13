@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import '../providers/profile_provider.dart';
-import '../providers/auth_provider.dart';
+import '../../providers/profile_provider.dart';
+import '../../providers/auth_provider.dart';
 import 'edit_profile_screen.dart';
 import 'change_password_screen.dart';
-import 'login_screen.dart';
-import '../widgets/dialog_utils.dart';
+import '../auth/login_screen.dart';
+import '../../widgets/dialog_utils.dart';
 
 class ProfileScreen extends StatefulWidget {
   const ProfileScreen({super.key});
@@ -221,7 +221,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
 
   // Handle logout
   Future<void> _handleLogout() async {
-    showConfirmationDialog(
+    DialogUtils.showConfirmationDialog(
       context,
       title: 'Logout',
       content: 'Are you sure you want to logout?',

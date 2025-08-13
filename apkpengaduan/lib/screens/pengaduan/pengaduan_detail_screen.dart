@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
-import '../providers/pengaduan_provider.dart';
-import '../models/pengaduan.dart';
-import '../widgets/status_badge.dart';
-import '../widgets/dialog_utils.dart';
+import '../../providers/pengaduan_provider.dart';
+import '../../models/pengaduan.dart';
+import '../../widgets/status_badge.dart';
+import '../../widgets/dialog_utils.dart';
 import 'edit_pengaduan_screen.dart';
 
 class PengaduanDetailScreen extends StatefulWidget {
@@ -60,7 +60,7 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
           IconButton(
             icon: const Icon(Icons.delete),
             onPressed:
-                () => showDeleteConfirmationDialog(
+                () => DialogUtils.showDeleteConfirmationDialog(
                   context,
                   title: 'Hapus Pengaduan',
                   content:
@@ -313,11 +313,11 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
       final success = await pengaduanProvider.deletePengaduan(widget.id);
 
       if (success) {
-  if (!mounted) return; // pastikan widget masih aktif
+        if (!mounted) return; // pastikan widget masih aktif
 
-  ScaffoldMessenger.of(context).showSnackBar(
-    const SnackBar(content: Text('Pengaduan deleted successfully')),
-  );
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Pengaduan deleted successfully')),
+        );
 
         // Navigate back to the list screen with refresh indicator
         if (mounted) Navigator.of(context).pop(true);
@@ -325,9 +325,9 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
     } catch (e) {
       if (!mounted) return; // pastikan widget masih aktif
 
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error deleting pengaduan: $e')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text('Error deleting pengaduan: $e')));
     }
   }
 }

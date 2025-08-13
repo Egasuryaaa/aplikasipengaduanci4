@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
-import '../screens/pengaduan_list_screen.dart';
-import '../screens/profile_screen.dart';
-import 'pengaduan_history_screen.dart';
+import 'pengaduan/pengaduan_list_screen.dart';
+import 'profile/profile_screen.dart';
+import 'pengaduan/pengaduan_history_screen.dart';
 
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});

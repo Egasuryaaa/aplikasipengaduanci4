@@ -152,6 +152,32 @@ class AuthProvider extends ChangeNotifier {
     }
   }
 
+  // Change user password
+  Future<bool> changePassword(String oldPassword, String newPassword) async {
+    _setLoading(true);
+    _clearError();
+    
+    try {
+      final response = await _apiService.changePassword(
+        currentPassword: oldPassword,
+        newPassword: newPassword,
+        confirmPassword: newPassword,
+      );
+      
+      if (response['status'] == true) {
+        return true;
+      } else {
+        _setError(response['message'] ?? 'Failed to change password');
+        return false;
+      }
+    } catch (e) {
+      _setError('Error: ${e.toString()}');
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
   // Get current user info
   Future<void> _fetchUserInfo() async {
     try {
