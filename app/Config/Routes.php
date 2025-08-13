@@ -70,46 +70,40 @@ $routes->group('admin', function($routes) {
     });
 });
 
-// Mobile API Routes (JWT-based Authentication)
-$routes->group('api', ['filter' => 'cors_custom'], function($routes) {
-    // Public API routes (no auth required)
-    $routes->post('auth/register', 'Api\AuthController::register');
-    $routes->post('auth/login', 'Api\AuthController::login');
-    $routes->post('auth/forgot-password', 'Api\AuthController::forgotPassword');
-    $routes->post('auth/reset-password', 'Api\AuthController::resetPassword');
+// Mobile API Routes (Token-based Authentication)
+// API Routes (no filters to prevent CORS issues)
+$routes->group('api', function ($routes) {
+    // Handle OPTIONS requests for CORS preflight - match all possible endpoints
+    $routes->options('(:any)', 'Api\ApiController::options');
+    $routes->options('(:any)/(:num)', 'Api\ApiController::options');
+    $routes->options('(:any)/(:any)', 'Api\ApiController::options');
+    $routes->options('(:any)/(:num)/(:any)', 'Api\ApiController::options');
     
-    // Master data (public access for dropdown data)
-    $routes->get('instansi', 'Api\MasterDataController::instansi');
-    $routes->get('kategori', 'Api\MasterDataController::kategori');
+    // Test endpoint for CORS
+    $routes->get('cors-test', 'Api\CorsTestController::index');
     
-    // Protected API routes (JWT auth required)
-    $routes->group('', ['filter' => 'jwt_auth'], function($routes) {
-        // Auth management
-        $routes->post('auth/refresh', 'Api\AuthController::refresh');
-        $routes->post('auth/logout', 'Api\AuthController::logout');
-        $routes->get('auth/profile', 'Api\AuthController::profile');
-        $routes->post('auth/profile', 'Api\AuthController::updateProfile');
-        $routes->post('auth/change-password', 'Api\AuthController::changePassword');
+    // Debug endpoint for testing
+    $routes->get('debug/token', 'Api\DebugController::testToken');
+    
+    // Public API endpoints (no auth required)
+    $routes->post('register', 'Api\AuthController::register');
+    $routes->post('login', 'Api\AuthController::login');
+    
+    // Kategori list for dropdowns
+    $routes->get('kategori', 'Api\KategoriController::index');
+    
+    // Protected API endpoints with simplified auth
+    $routes->group('', function ($routes) {
+        // User routes
+        $routes->post('logout', 'Api\AuthController::logout');
+        $routes->get('user', 'Api\AuthController::user');
         
-        // Pengaduan management
+        // Pengaduan routes
         $routes->get('pengaduan', 'Api\PengaduanController::index');
-        $routes->post('pengaduan', 'Api\PengaduanController::store');
-        $routes->get('pengaduan/(:segment)', 'Api\PengaduanController::show/$1');
-        $routes->put('pengaduan/(:segment)', 'Api\PengaduanController::update/$1');
-        $routes->delete('pengaduan/(:segment)', 'Api\PengaduanController::delete/$1');
-        $routes->post('pengaduan/(:segment)/comment', 'Api\PengaduanController::addComment/$1');
-        $routes->post('pengaduan/(:segment)/cancel', 'Api\PengaduanController::cancelPengaduan/$1');
-        
-        // File upload
-        $routes->post('files/upload', 'Api\FileController::uploadImage');
-        $routes->post('files/upload-multiple', 'Api\FileController::uploadMultiple');
-        $routes->delete('files/(:segment)', 'Api\FileController::deleteFile/$1');
-        $routes->get('files/(:segment)', 'Api\FileController::getFileInfo/$1');
-        
-        // Notifications
-        $routes->get('notifications', 'Api\NotificationController::index');
-        $routes->post('notifications/(:num)/read', 'Api\NotificationController::markAsRead/$1');
-        $routes->post('notifications/read-all', 'Api\NotificationController::markAllAsRead');
+        $routes->get('pengaduan/(:num)', 'Api\PengaduanController::show/$1');
+        $routes->post('pengaduan', 'Api\PengaduanController::create');
+        $routes->put('pengaduan/(:num)', 'Api\PengaduanController::update/$1');
+        $routes->post('pengaduan/(:num)/status', 'Api\PengaduanController::addStatus/$1');
     });
 });
 

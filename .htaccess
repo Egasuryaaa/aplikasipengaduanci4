@@ -47,3 +47,19 @@ Options -Indexes
 # Disable server signature start
 ServerSignature Off
 # Disable server signature end
+
+# CORS Headers for API routes
+<IfModule mod_headers.c>
+    # Set CORS headers for all API routes
+    <FilesMatch "index\.php">
+        SetEnvIf Request_URI "^/api/" CORS=true
+        Header always set Access-Control-Allow-Origin "*" env=CORS
+        Header always set Access-Control-Allow-Methods "GET, POST, PUT, DELETE, OPTIONS" env=CORS
+        Header always set Access-Control-Allow-Headers "Origin, X-Requested-With, Content-Type, Accept, Authorization" env=CORS
+        Header always set Access-Control-Max-Age "1728000" env=CORS
+        
+        # Handle OPTIONS preflight requests
+        RewriteCond %{REQUEST_METHOD} OPTIONS
+        RewriteRule ^api/ - [R=200,L]
+    </FilesMatch>
+</IfModule>

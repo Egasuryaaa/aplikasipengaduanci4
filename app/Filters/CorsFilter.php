@@ -10,6 +10,8 @@ class CorsFilter implements FilterInterface
 {
     private $allowedOrigins = [
         'http://localhost:3000',      // Development
+        'http://localhost:57236',     // Flutter web dev server
+        'http://localhost',           // Any localhost origin
         'https://yourdomain.com',     // Production web
         'file://',                    // Mobile app (Capacitor)
         'ionic://',                   // Ionic app

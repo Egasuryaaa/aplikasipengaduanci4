@@ -14,7 +14,7 @@ class UserModel extends Model
     protected $protectFields    = true;
     protected $allowedFields    = [
         'uuid', 'name', 'email', 'phone', 'password', 'instansi_id', 
-        'role', 'is_active', 'email_verified_at', 'last_login'
+        'role', 'is_active', 'email_verified_at', 'last_login', 'api_token'
     ];
 
     // Dates
@@ -84,5 +84,40 @@ class UserModel extends Model
     public function updateLastLogin($userId)
     {
         return $this->update($userId, ['last_login' => date('Y-m-d H:i:s')]);
+    }
+
+    /**
+     * Generate a new API token for user
+     *
+     * @param int $userId
+     * @return string The new token
+     */
+    public function generateApiToken($userId)
+    {
+        $token = bin2hex(random_bytes(32)); // 64 character random string
+        $this->update($userId, ['api_token' => $token]);
+        return $token;
+    }
+
+    /**
+     * Clear API token for user
+     *
+     * @param int $userId
+     * @return bool
+     */
+    public function clearApiToken($userId)
+    {
+        return $this->update($userId, ['api_token' => null]);
+    }
+
+    /**
+     * Find user by phone number
+     *
+     * @param string $phone
+     * @return array|null
+     */
+    public function findByPhone($phone)
+    {
+        return $this->where('phone', $phone)->first();
     }
 }

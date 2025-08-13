@@ -38,6 +38,7 @@ class Filters extends BaseFilters
         'cors_custom'   => \App\Filters\CorsFilter::class,
         'auth'          => \App\Filters\AuthFilter::class,
         'jwt_auth'      => \App\Filters\JWTAuthFilter::class,
+        'api_auth'      => \App\Filters\ApiAuthFilter::class,
         'securitycsrf'  => [\App\Filters\SecurityFilter::class, CSRF::class],
     ];
 
@@ -78,7 +79,7 @@ class Filters extends BaseFilters
     public array $globals = [
         'before' => [
             // 'honeypot',
-            'csrf',
+            // 'csrf',  // Disabled to prevent API issues
             // 'invalidchars',
         ],
         'after' => [
