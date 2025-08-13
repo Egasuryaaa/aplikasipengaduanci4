@@ -29,14 +29,20 @@ class User {
 
   factory User.fromJson(Map<String, dynamic> json) {
     return User(
-      id: json['id'],
+      id: int.parse(json['id'].toString()),
       uuid: json['uuid'],
       name: json['name'],
       email: json['email'],
       phone: json['phone'],
-      instansiId: json['instansi_id'],
+      instansiId:
+          json['instansi_id'] != null
+              ? int.parse(json['instansi_id'].toString())
+              : null,
       role: json['role'],
-      isActive: json['is_active'] == 1 || json['is_active'] == true,
+      isActive:
+          json['is_active'] == 1 ||
+          json['is_active'] == 't' ||
+          json['is_active'] == true,
       emailVerifiedAt: json['email_verified_at'],
       lastLogin: json['last_login'],
       createdAt: json['created_at'],
@@ -78,8 +84,8 @@ class AuthResponse {
 
   factory AuthResponse.fromJson(Map<String, dynamic> json) {
     return AuthResponse(
-      status: json['status'],
-      message: json['message'],
+      status: json['status'] ?? false,
+      message: json['message'] ?? 'Unknown response',
       user:
           json['data'] != null && json['data']['user'] != null
               ? User.fromJson(json['data']['user'])

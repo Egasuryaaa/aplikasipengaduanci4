@@ -136,11 +136,8 @@ class AuthController extends ApiController
         $password = $this->request->getVar('password');
         
         try {
-            // Try to find user by email or phone
-            $user = $this->userModel->findByEmail($emailOrPhone);
-            if (!$user) {
-                $user = $this->userModel->findByPhone($emailOrPhone);
-            }
+            // Try to find user by identity (email or phone)
+            $user = $this->userModel->findByIdentity($emailOrPhone);
             
             // Check if user exists and password is correct
             if (!$user || !password_verify($password, $user['password'])) {

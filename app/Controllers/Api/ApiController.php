@@ -122,6 +122,7 @@ class ApiController extends ResourceController
         $this->response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
         $this->response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
         $this->response->setHeader('Access-Control-Allow-Credentials', 'false');
+        $this->response->setHeader('Access-Control-Max-Age', '3600'); // Cache preflight for 1 hour
     }
     
     /**

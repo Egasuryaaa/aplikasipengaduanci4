@@ -120,4 +120,17 @@ class UserModel extends Model
     {
         return $this->where('phone', $phone)->first();
     }
+
+    /**
+     * Find user by either email or phone
+     *
+     * @param string $identity Email or phone number
+     * @return array|null
+     */
+    public function findByIdentity($identity)
+    {
+        return $this->where('email', $identity)
+                    ->orWhere('phone', $identity)
+                    ->first();
+    }
 }

@@ -123,7 +123,7 @@ class PengaduanController extends ApiController
      * Response 200: { "status": true, "message":"Detail pengaduan", "data": { "pengaduan": {...}, "history": [...] } }
      * Response 404: { "status": false, "message":"Pengaduan not found", "data": null }
      */
-    public function show($id)
+    public function show($id = null)
     {
         try {
             $userId = $this->getAuthUserId();

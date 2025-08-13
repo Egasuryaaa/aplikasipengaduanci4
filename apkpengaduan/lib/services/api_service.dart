@@ -4,13 +4,15 @@ import 'package:dio/dio.dart';
 
 class ApiService {
   // Configure baseUrl to point to the backend
-  static const String baseUrl = 'http://localhost/serverpengaduan/public/api';
+  // For emulator: use 10.0.2.2 instead of localhost
+  // For real device: use the actual IP address of your computer
+  static const String baseUrl = 'http://localhost/serverpengaduan/api';
   final Dio _dio = Dio();
 
   ApiService() {
     _dio.options.baseUrl = baseUrl;
-    _dio.options.connectTimeout = const Duration(seconds: 10);
-    _dio.options.receiveTimeout = const Duration(seconds: 10);
+    _dio.options.connectTimeout = const Duration(seconds: 15);
+    _dio.options.receiveTimeout = const Duration(seconds: 15);
 
     // Set default content type
     _dio.options.headers = {
@@ -19,7 +21,15 @@ class ApiService {
     };
 
     // Add interceptor for logging
-    _dio.interceptors.add(LogInterceptor(responseBody: true));
+    _dio.interceptors.add(
+      LogInterceptor(
+        requestBody: true,
+        responseBody: true,
+        error: true,
+        requestHeader: true,
+        responseHeader: true,
+      ),
+    );
   }
 
   // Add auth token to headers
@@ -61,6 +71,7 @@ class ApiService {
     required String password,
   }) async {
     try {
+      // Try with email_or_phone parameter
       final response = await _dio.post(
         '/login',
         data: {'email_or_phone': emailOrPhone, 'password': password},
@@ -245,10 +256,36 @@ class ApiService {
         // Try to parse error message from response
         try {
           final data = error.response!.data;
-          if (data is Map && data.containsKey('message')) {
-            return Exception(data['message']);
+
+          if (data is Map) {
+            // Check for validation errors
+            if (data['message'] == 'Validation Error' &&
+                data.containsKey('data') &&
+                data['data'] is Map &&
+                data['data'].containsKey('errors')) {
+              // Format validation errors
+              final errors = data['data']['errors'];
+              if (errors is Map) {
+                String errorMessage = '';
+                errors.forEach((key, value) {
+                  errorMessage += '$value\n';
+                });
+                return Exception(errorMessage.trim());
+              }
+              return Exception('Validation failed. Please check your input.');
+            }
+
+            // Regular error message
+            if (data.containsKey('message')) {
+              return Exception(data['message']);
+            } else if (data.containsKey('status') &&
+                data.containsKey('error')) {
+              return Exception(data['error']);
+            }
           }
-        } catch (_) {}
+        } catch (e) {
+          // Error parsing response - continue to use default error handling
+        }
 
         // If we can't parse the error, return the status code
         return Exception(
@@ -257,10 +294,12 @@ class ApiService {
       } else if (error.type == DioExceptionType.connectionError) {
         // This might be a CORS error
         return Exception(
-          'Connection error (possible CORS issue): ${error.message}',
+          'Connection error (possible CORS issue). Make sure the server is running and CORS is properly configured.',
         );
       } else if (error.error is SocketException) {
-        return Exception('Network error: Check your internet connection');
+        return Exception(
+          'Network error: Check your internet connection and server URL ($baseUrl)',
+        );
       } else {
         return Exception('Request failed: ${error.message} (${error.type})');
       }
