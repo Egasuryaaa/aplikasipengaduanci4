@@ -65,7 +65,7 @@ class ProfileController extends ApiController
      * Response 400: { "status": false, "message": "Validation Error", "data": { "errors": {...} } }
      * Response 401: { "status": false, "message": "Unauthorized" }
      */
-    public function update()
+    public function update($id = null)
     {
         // Set CORS headers
         $this->setCorsHeaders();

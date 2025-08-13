@@ -94,13 +94,21 @@ class ApiController extends ResourceController
     }
 
     /**
-     * Get authenticated user from request
+     * Get authenticated user from token
      *
      * @return array|null
      */
     protected function getAuthUser()
     {
-        return $this->request->user ?? null;
+        $authHeader = $this->request->getHeaderLine('Authorization');
+        
+        if (empty($authHeader) || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
+            return null;
+        }
+        
+        $token = $matches[1];
+        $userModel = new \App\Models\UserModel();
+        return $userModel->where('api_token', $token)->first();
     }
 
     /**
@@ -110,7 +118,8 @@ class ApiController extends ResourceController
      */
     protected function getAuthUserId()
     {
-        return $this->getAuthUser()['id'] ?? null;
+        $user = $this->getAuthUser();
+        return $user['id'] ?? null;
     }
     
     /**

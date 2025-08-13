@@ -47,6 +47,11 @@ class PengaduanController extends ApiController
         try {
             $userId = $this->getAuthUserId();
             
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
+            
             // Get pengaduan with relations
             $builder = $this->pengaduanModel->getPengaduanWithRelations()
                             ->where('pengaduan.user_id', $userId);
@@ -125,8 +130,21 @@ class PengaduanController extends ApiController
      */
     public function show($id = null)
     {
+        // Set CORS headers
+        $this->setCorsHeaders();
+        
+        // Handle OPTIONS preflight requests
+        if ($this->request->getMethod() === 'options') {
+            return $this->response->setStatusCode(200);
+        }
+        
         try {
             $userId = $this->getAuthUserId();
+            
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
             
             // Get pengaduan with relations
             $pengaduan = $this->pengaduanModel->getPengaduanWithRelations($id);
@@ -174,6 +192,14 @@ class PengaduanController extends ApiController
      */
     public function create()
     {
+        // Set CORS headers
+        $this->setCorsHeaders();
+        
+        // Handle OPTIONS preflight requests
+        if ($this->request->getMethod() === 'options') {
+            return $this->response->setStatusCode(200);
+        }
+        
         $rules = [
             'judul' => 'required|min_length[3]|max_length[255]',
             'isi' => 'required|min_length[10]|max_length[2000]',
@@ -188,6 +214,12 @@ class PengaduanController extends ApiController
 
         try {
             $userId = $this->getAuthUserId();
+            
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
+            
             $kategoriId = $this->request->getPost('kategori_id');
             
             // Get the user's instansi_id
@@ -304,6 +336,11 @@ class PengaduanController extends ApiController
 
         try {
             $userId = $this->getAuthUserId();
+            
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
             
             // Check if pengaduan exists and belongs to the authenticated user
             $pengaduan = $this->pengaduanModel->find($id);
@@ -491,6 +528,14 @@ class PengaduanController extends ApiController
      */
     public function addStatus($id)
     {
+        // Set CORS headers
+        $this->setCorsHeaders();
+        
+        // Handle OPTIONS preflight requests
+        if ($this->request->getMethod() === 'options') {
+            return $this->response->setStatusCode(200);
+        }
+        
         $rules = [
             'status' => 'required|in_list[pending,diproses,selesai,ditolak]',
             'keterangan' => 'permit_empty|max_length[500]',
@@ -502,6 +547,11 @@ class PengaduanController extends ApiController
 
         try {
             $userId = $this->getAuthUserId();
+            
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
             
             // Check if pengaduan exists and belongs to the authenticated user
             $pengaduan = $this->pengaduanModel->find($id);
@@ -574,6 +624,11 @@ class PengaduanController extends ApiController
         try {
             $userId = $this->getAuthUserId();
             
+            // Check if user is authenticated
+            if (!$userId) {
+                return $this->respondError('Unauthorized', 401);
+            }
+            
             // Check if pengaduan exists and belongs to the authenticated user
             $pengaduan = $this->pengaduanModel->find($id);
             if (!$pengaduan) {
@@ -602,4 +657,13 @@ class PengaduanController extends ApiController
             return $this->respondError('Gagal menghapus pengaduan: ' . $e->getMessage());
         }
     }
+
+    /**
+     * Test endpoint for debugging authentication
+     * 
+     * GET /api/pengaduan/test-auth
+     * Headers: Authorization: Bearer {token}
+     * Response 200: { "status": true, "message": "Authentication successful", "data": { "user": {...} } }
+     * Response 401: { "status": false, "message": "Unauthorized" }
+     */
 }

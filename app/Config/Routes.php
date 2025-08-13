@@ -91,7 +91,8 @@ $routes->group('api', function ($routes) {
     $routes->group('', function ($routes) {
         // User routes
         $routes->post('logout', 'Api\AuthController::logout');
-        $routes->get('user', 'Api\AuthController::user');
+        $routes->get('user', 'Api\UserController::index');
+        $routes->put('user', 'Api\UserController::update');
         
         // Profile routes
         $routes->get('profile', 'Api\ProfileController::index');
