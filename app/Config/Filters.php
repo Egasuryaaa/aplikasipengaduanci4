@@ -3,7 +3,7 @@
 namespace Config;
 
 use CodeIgniter\Config\Filters as BaseFilters;
-use CodeIgniter\Filters\Cors;
+// use CodeIgniter\Filters\Cors; // Disabled to fix CORS issues
 use CodeIgniter\Filters\CSRF;
 use CodeIgniter\Filters\DebugToolbar;
 use CodeIgniter\Filters\ForceHTTPS;
@@ -30,14 +30,12 @@ class Filters extends BaseFilters
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        'cors'          => Cors::class,
+        // 'cors'          => Cors::class, // Disabled to fix CORS issues
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,
         'security'      => \App\Filters\SecurityFilter::class,
-        'cors_custom'   => \App\Filters\CorsFilter::class,
         'auth'          => \App\Filters\AuthFilter::class,
-        'jwt_auth'      => \App\Filters\JWTAuthFilter::class,
         'api_auth'      => \App\Filters\ApiAuthFilter::class,
         'securitycsrf'  => [\App\Filters\SecurityFilter::class, CSRF::class],
     ];

@@ -263,7 +263,18 @@
                 { "orderable": false, "targets": [2, 6] } // Disable ordering on foto and action columns
             ],
             "language": {
-                "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+                "processing": "Sedang memproses...",
+                "search": "Cari:",
+                "lengthMenu": "Tampilkan _MENU_ entri",
+                "info": "Menampilkan _START_ sampai _END_ dari _TOTAL_ entri",
+                "infoEmpty": "Menampilkan 0 sampai 0 dari 0 entri",
+                "infoFiltered": "(disaring dari _MAX_ entri keseluruhan)",
+                "paginate": {
+                    "first": "Pertama",
+                    "previous": "Sebelumnya",
+                    "next": "Selanjutnya",
+                    "last": "Terakhir"
+                }
             }
         });
     });

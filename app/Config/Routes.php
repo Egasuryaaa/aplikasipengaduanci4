@@ -79,12 +79,7 @@ $routes->group('api', function ($routes) {
     $routes->options('(:any)/(:any)', 'Api\ApiController::options');
     $routes->options('(:any)/(:num)/(:any)', 'Api\ApiController::options');
     
-    // Test endpoint for CORS
-    $routes->get('cors-test', 'Api\CorsTestController::index');
-    
-    // Debug endpoint for testing
-    $routes->get('debug/token', 'Api\DebugController::testToken');
-    
+
     // Public API endpoints (no auth required)
     $routes->post('register', 'Api\AuthController::register');
     $routes->post('login', 'Api\AuthController::login');
@@ -98,11 +93,17 @@ $routes->group('api', function ($routes) {
         $routes->post('logout', 'Api\AuthController::logout');
         $routes->get('user', 'Api\AuthController::user');
         
+        // Profile routes
+        $routes->get('profile', 'Api\ProfileController::index');
+        $routes->put('profile', 'Api\ProfileController::update');
+        $routes->post('profile/change-password', 'Api\ProfileController::changePassword');
+        
         // Pengaduan routes
         $routes->get('pengaduan', 'Api\PengaduanController::index');
         $routes->get('pengaduan/(:num)', 'Api\PengaduanController::show/$1');
         $routes->post('pengaduan', 'Api\PengaduanController::create');
         $routes->put('pengaduan/(:num)', 'Api\PengaduanController::update/$1');
+        $routes->delete('pengaduan/(:num)', 'Api\PengaduanController::delete/$1');
         $routes->post('pengaduan/(:num)/status', 'Api\PengaduanController::addStatus/$1');
     });
 });

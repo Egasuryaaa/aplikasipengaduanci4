@@ -3,6 +3,9 @@ import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/pengaduan_provider.dart';
 import '../models/pengaduan.dart';
+import '../widgets/status_badge.dart';
+import '../widgets/dialog_utils.dart';
+import 'edit_pengaduan_screen.dart';
 
 class PengaduanDetailScreen extends StatefulWidget {
   final int id;
@@ -34,7 +37,39 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
     final pengaduan = pengaduanProvider.current;
 
     return Scaffold(
-      appBar: AppBar(title: const Text('Detail Pengaduan')),
+      appBar: AppBar(
+        title: const Text('Detail Pengaduan'),
+        actions: [
+          // Edit button
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () async {
+              final result = await Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => EditPengaduanScreen(id: widget.id),
+                ),
+              );
+
+              // If returned with success, refresh the data
+              if (result == true) {
+                _loadData();
+              }
+            },
+          ),
+          // Delete button
+          IconButton(
+            icon: const Icon(Icons.delete),
+            onPressed:
+                () => showDeleteConfirmationDialog(
+                  context,
+                  title: 'Hapus Pengaduan',
+                  content:
+                      'Apakah Anda yakin ingin menghapus pengaduan ini? Tindakan ini tidak dapat dibatalkan.',
+                  onConfirm: _deletePengaduan,
+                ),
+          ),
+        ],
+      ),
       body:
           pengaduanProvider.isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -134,27 +169,7 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
               style: TextStyle(fontWeight: FontWeight.bold, fontSize: 18),
             ),
             const SizedBox(height: 8),
-            Container(
-              padding: const EdgeInsets.all(8),
-              decoration: BoxDecoration(
-                color: Color(pengaduan.statusColor),
-                borderRadius: BorderRadius.circular(8),
-              ),
-              child: Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  const Icon(Icons.circle, size: 12, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Text(
-                    pengaduan.statusText,
-                    style: const TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color: Colors.white,
-                    ),
-                  ),
-                ],
-              ),
-            ),
+            StatusBadge(status: pengaduan.status, size: StatusBadgeSize.large),
             if (pengaduan.keteranganAdmin != null &&
                 pengaduan.keteranganAdmin!.isNotEmpty) ...[
               const SizedBox(height: 16),
@@ -285,5 +300,34 @@ class _PengaduanDetailScreenState extends State<PengaduanDetailScreen> {
             ),
           ),
     );
+  }
+
+  // Delete the pengaduan
+  Future<void> _deletePengaduan() async {
+    final pengaduanProvider = Provider.of<PengaduanProvider>(
+      context,
+      listen: false,
+    );
+
+    try {
+      final success = await pengaduanProvider.deletePengaduan(widget.id);
+
+      if (success) {
+  if (!mounted) return; // pastikan widget masih aktif
+
+  ScaffoldMessenger.of(context).showSnackBar(
+    const SnackBar(content: Text('Pengaduan deleted successfully')),
+  );
+
+        // Navigate back to the list screen with refresh indicator
+        if (mounted) Navigator.of(context).pop(true);
+      }
+    } catch (e) {
+      if (!mounted) return; // pastikan widget masih aktif
+
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error deleting pengaduan: $e')),
+      );
+    }
   }
 }

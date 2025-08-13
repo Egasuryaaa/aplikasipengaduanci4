@@ -145,6 +145,7 @@ class PengaduanProvider extends ChangeNotifier {
     int? kategoriId,
     String? lokasi,
     File? foto,
+    bool deleteFoto = false,
   }) async {
     _setLoading(true);
     _clearError();
@@ -157,12 +158,38 @@ class PengaduanProvider extends ChangeNotifier {
         kategoriId: kategoriId,
         lokasi: lokasi,
         foto: foto,
+        deleteFoto: deleteFoto,
       );
 
       if (response['status']) {
         // Refresh detail and list on success
         await fetchDetail(id);
         await fetchList(refresh: true);
+        return true;
+      } else {
+        _setError(response['message']);
+        return false;
+      }
+    } catch (e) {
+      _setError(e.toString());
+      return false;
+    } finally {
+      _setLoading(false);
+    }
+  }
+
+  // Delete a pengaduan
+  Future<bool> deletePengaduan(int id) async {
+    _setLoading(true);
+    _clearError();
+
+    try {
+      final response = await _apiService.deletePengaduan(id);
+
+      if (response['status']) {
+        // Refresh list on successful deletion
+        await fetchList(refresh: true);
+        clearCurrent(); // Clear current selection since it was deleted
         return true;
       } else {
         _setError(response['message']);

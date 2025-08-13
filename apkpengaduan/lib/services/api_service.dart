@@ -193,30 +193,46 @@ class ApiService {
     int? kategoriId,
     String? lokasi,
     File? foto,
+    bool deleteFoto = false,
   }) async {
     try {
-      FormData formData = FormData.fromMap({
-        if (judul != null) 'judul': judul,
-        if (isi != null) 'isi': isi,
-        if (kategoriId != null) 'kategori_id': kategoriId,
-        if (lokasi != null) 'lokasi': lokasi,
-      });
+      // Choose whether to use JSON or FormData based on whether we have a file
+      if (foto == null && !deleteFoto) {
+        // Use JSON for simple updates without file changes
+        final data = <String, dynamic>{};
+        if (judul != null) data['judul'] = judul;
+        if (isi != null) data['isi'] = isi;
+        if (kategoriId != null) data['kategori_id'] = kategoriId.toString();
+        if (lokasi != null) data['lokasi'] = lokasi;
 
-      // Add foto if provided
-      if (foto != null) {
-        formData.files.add(
-          MapEntry(
-            'foto',
-            await MultipartFile.fromFile(
-              foto.path,
-              filename: foto.path.split('/').last,
+        final response = await _dio.put('/pengaduan/$id', data: data);
+        return response.data;
+      } else {
+        // Use FormData for updates with file changes
+        FormData formData = FormData.fromMap({
+          if (judul != null) 'judul': judul,
+          if (isi != null) 'isi': isi,
+          if (kategoriId != null) 'kategori_id': kategoriId.toString(),
+          if (lokasi != null) 'lokasi': lokasi,
+          if (deleteFoto) 'delete_foto': '1', // Flag to delete existing photo
+        });
+
+        // Add foto if provided
+        if (foto != null) {
+          formData.files.add(
+            MapEntry(
+              'foto',
+              await MultipartFile.fromFile(
+                foto.path,
+                filename: foto.path.split('/').last,
+              ),
             ),
-          ),
-        );
-      }
+          );
+        }
 
-      final response = await _dio.put('/pengaduan/$id', data: formData);
-      return response.data;
+        final response = await _dio.put('/pengaduan/$id', data: formData);
+        return response.data;
+      }
     } catch (e) {
       throw _handleError(e);
     }
@@ -243,6 +259,16 @@ class ApiService {
   Future<Map<String, dynamic>> getKategori() async {
     try {
       final response = await _dio.get('/kategori');
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Delete a pengaduan
+  Future<Map<String, dynamic>> deletePengaduan(int id) async {
+    try {
+      final response = await _dio.delete('/pengaduan/$id');
       return response.data;
     } catch (e) {
       throw _handleError(e);
@@ -305,5 +331,55 @@ class ApiService {
       }
     }
     return Exception('Unknown error occurred: $error');
+  }
+
+  // Get user profile
+  Future<Map<String, dynamic>> getProfile() async {
+    try {
+      final response = await _dio.get('/profile');
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Update user profile
+  Future<Map<String, dynamic>> updateProfile({
+    String? name,
+    String? email,
+    String? phone,
+  }) async {
+    try {
+      final data = <String, dynamic>{};
+      if (name != null) data['name'] = name;
+      if (email != null) data['email'] = email;
+      if (phone != null) data['phone'] = phone;
+
+      final response = await _dio.put('/profile', data: data);
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
+  }
+
+  // Change user password
+  Future<Map<String, dynamic>> changePassword({
+    required String currentPassword,
+    required String newPassword,
+    required String confirmPassword,
+  }) async {
+    try {
+      final response = await _dio.post(
+        '/profile/change-password',
+        data: {
+          'current_password': currentPassword,
+          'new_password': newPassword,
+          'confirm_password': confirmPassword,
+        },
+      );
+      return response.data;
+    } catch (e) {
+      throw _handleError(e);
+    }
   }
 }

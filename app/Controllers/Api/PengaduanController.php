@@ -277,14 +277,25 @@ class PengaduanController extends ApiController
      * Response 200: { "status": true, "message":"Pengaduan diperbarui", "data": { "pengaduan": {...} } }
      * Response 404: { "status": false, "message":"Pengaduan not found", "data": null }
      */
-    public function update($id)
+    public function update($id = null)
     {
+        // Set headers explicitly for CORS and content type
+        $this->setCorsHeaders();
+        $this->response->setHeader('Content-Type', 'application/json');
+        
+        // Handle OPTIONS preflight requests
+        if ($this->request->getMethod() === 'options') {
+            return $this->response->setStatusCode(200);
+        }
+        
+        // Define validation rules for all possible fields
         $rules = [
             'judul' => 'permit_empty|min_length[3]|max_length[255]',
             'isi' => 'permit_empty|min_length[10]|max_length[2000]',
             'kategori_id' => 'permit_empty|integer|is_not_unique[kategori_pengaduan.id]',
             'lokasi' => 'permit_empty|max_length[255]',
             'foto' => 'permit_empty|is_image[foto]|max_size[foto,5120]', // 5MB max
+            'delete_photos' => 'permit_empty',
         ];
 
         if (!$this->validate($rules)) {
@@ -296,72 +307,154 @@ class PengaduanController extends ApiController
             
             // Check if pengaduan exists and belongs to the authenticated user
             $pengaduan = $this->pengaduanModel->find($id);
-            if (!$pengaduan || $pengaduan['user_id'] != $userId) {
-                return $this->respondNotFound('Pengaduan not found');
+            if (!$pengaduan) {
+                return $this->respondNotFound('Pengaduan tidak ditemukan');
+            }
+            
+            if ($pengaduan['user_id'] != $userId) {
+                return $this->respondForbidden('Anda tidak memiliki akses untuk mengedit pengaduan ini');
             }
             
             // Check if pengaduan is still editable (only pending can be edited)
             if ($pengaduan['status'] !== 'pending') {
-                return $this->respondError('Pengaduan cannot be edited because status is ' . $pengaduan['status'], 403);
+                return $this->respondError('Pengaduan tidak dapat diedit karena status sudah ' . $pengaduan['status'], 403);
             }
             
             // Prepare data for update
             $data = [];
+            $contentType = $this->request->getHeaderLine('Content-Type');
+            $isJsonRequest = strpos($contentType, 'application/json') !== false;
             
-            if ($this->request->getVar('isi')) {
-                $data['deskripsi'] = $this->request->getVar('isi');
+            // Handle judul field (mapped to a column in the database if needed)
+            $judul = $isJsonRequest 
+                ? $this->request->getJSON()->judul ?? null 
+                : $this->request->getVar('judul');
+            if ($judul !== null) {
+                // Assuming there's no judul column and it's part of deskripsi or another field
+                // If there's a specific judul column, just set $data['judul'] = $judul
+                $data['judul'] = $judul;
             }
             
-            if ($this->request->getVar('kategori_id')) {
-                $data['kategori_id'] = $this->request->getVar('kategori_id');
+            // Handle description
+            $isi = $isJsonRequest 
+                ? $this->request->getJSON()->isi ?? null 
+                : $this->request->getVar('isi');
+            if ($isi !== null) {
+                $data['deskripsi'] = $isi;
+            }
+            
+            // Handle kategori
+            $kategoriId = $isJsonRequest 
+                ? $this->request->getJSON()->kategori_id ?? null 
+                : $this->request->getVar('kategori_id');
+            if ($kategoriId !== null) {
+                $data['kategori_id'] = $kategoriId;
+            }
+            
+            // Handle lokasi
+            $lokasi = $isJsonRequest 
+                ? $this->request->getJSON()->lokasi ?? null 
+                : $this->request->getVar('lokasi');
+            if ($lokasi !== null) {
+                $data['lokasi'] = $lokasi;
+            }
+            
+            // Handle photo deletion if requested
+            $deletePhotos = $isJsonRequest 
+                ? $this->request->getJSON()->delete_photos ?? null 
+                : $this->request->getVar('delete_photos');
+            
+            $existingFoto = json_decode($pengaduan['foto_bukti'] ?? '[]', true) ?? [];
+            
+            if ($deletePhotos !== null) {
+                // If delete_photos is an array, remove those specific photos
+                if (is_array($deletePhotos)) {
+                    // Get filenames from existing photos
+                    $uploadPath = WRITEPATH . 'uploads/pengaduan/';
+                    foreach ($deletePhotos as $photoToDelete) {
+                        $index = array_search($photoToDelete, $existingFoto);
+                        if ($index !== false) {
+                            // Delete the file if it exists
+                            if (file_exists($uploadPath . $photoToDelete)) {
+                                unlink($uploadPath . $photoToDelete);
+                            }
+                            // Remove from array
+                            unset($existingFoto[$index]);
+                        }
+                    }
+                    // Reindex array
+                    $existingFoto = array_values($existingFoto);
+                } 
+                // If delete_photos is 'all', clear all photos
+                elseif ($deletePhotos === 'all') {
+                    $uploadPath = WRITEPATH . 'uploads/pengaduan/';
+                    foreach ($existingFoto as $photo) {
+                        if (file_exists($uploadPath . $photo)) {
+                            unlink($uploadPath . $photo);
+                        }
+                    }
+                    $existingFoto = [];
+                }
+                
+                // Update foto_bukti with the modified array
+                $data['foto_bukti'] = json_encode($existingFoto);
             }
             
             // Handle file upload if provided
-            $files = $this->request->getFiles();
             $uploadPath = WRITEPATH . 'uploads/pengaduan/';
             
-            if (isset($files['foto']) && !empty($files['foto'])) {
-                // Create directory if it doesn't exist
-                if (!is_dir($uploadPath)) {
-                    mkdir($uploadPath, 0777, true);
-                }
+            // For JSON requests, no file uploads are expected
+            if (!$isJsonRequest) {
+                $files = $this->request->getFiles();
                 
-                $fotoFiles = $files['foto'];
-                $fotoBukti = [];
-                
-                // Handle multiple files
-                if (is_array($fotoFiles)) {
-                    foreach ($fotoFiles as $foto) {
-                        if ($foto->isValid() && !$foto->hasMoved()) {
-                            $newName = $foto->getRandomName();
-                            $foto->move($uploadPath, $newName);
+                if (isset($files['foto']) && !empty($files['foto'])) {
+                    // Create directory if it doesn't exist
+                    if (!is_dir($uploadPath)) {
+                        mkdir($uploadPath, 0777, true);
+                    }
+                    
+                    $fotoFiles = $files['foto'];
+                    $fotoBukti = [];
+                    
+                    // Handle multiple files
+                    if (is_array($fotoFiles)) {
+                        foreach ($fotoFiles as $foto) {
+                            if ($foto->isValid() && !$foto->hasMoved()) {
+                                $newName = $foto->getRandomName();
+                                $foto->move($uploadPath, $newName);
+                                $fotoBukti[] = $newName;
+                            }
+                        }
+                    } else {
+                        // Handle single file
+                        if ($fotoFiles->isValid() && !$fotoFiles->hasMoved()) {
+                            $newName = $fotoFiles->getRandomName();
+                            $fotoFiles->move($uploadPath, $newName);
                             $fotoBukti[] = $newName;
                         }
                     }
-                } else {
-                    // Handle single file
-                    if ($fotoFiles->isValid() && !$fotoFiles->hasMoved()) {
-                        $newName = $fotoFiles->getRandomName();
-                        $fotoFiles->move($uploadPath, $newName);
-                        $fotoBukti[] = $newName;
+                    
+                    if (!empty($fotoBukti)) {
+                        // Merge with existing photos (after deletion if any)
+                        $allFoto = array_merge($existingFoto, $fotoBukti);
+                        $data['foto_bukti'] = json_encode($allFoto);
                     }
-                }
-                
-                if (!empty($fotoBukti)) {
-                    // Get existing photos and merge with new ones
-                    $existingFoto = json_decode($pengaduan['foto_bukti'] ?? '[]', true) ?? [];
-                    $allFoto = array_merge($existingFoto, $fotoBukti);
-                    $data['foto_bukti'] = json_encode($allFoto);
                 }
             }
             
             // Update pengaduan if there are changes
             if (!empty($data)) {
                 $this->pengaduanModel->update($id, $data);
+                
+                // Log the action
+                log_message('info', "Pengaduan {$id} updated by user {$userId} with data: " . json_encode($data));
             }
             
-            // Get the updated pengaduan
+            // Get the updated pengaduan with relations
             $updatedPengaduan = $this->pengaduanModel->getPengaduanWithRelations($id);
+            
+            // Get status history
+            $history = $this->statusHistoryModel->getHistoryByPengaduan($id);
             
             // Process foto_bukti for response
             if (!empty($updatedPengaduan['foto_bukti'])) {
@@ -378,12 +471,13 @@ class PengaduanController extends ApiController
             
             // Return response
             return $this->respondSuccess([
-                'pengaduan' => $updatedPengaduan
+                'pengaduan' => $updatedPengaduan,
+                'history' => $history
             ], 'Pengaduan berhasil diperbarui');
             
         } catch (\Exception $e) {
             log_message('error', 'Update pengaduan error: ' . $e->getMessage());
-            return $this->respondError('Failed to update pengaduan: ' . $e->getMessage());
+            return $this->respondError('Gagal memperbarui pengaduan: ' . $e->getMessage());
         }
     }
 
@@ -455,6 +549,57 @@ class PengaduanController extends ApiController
         } catch (\Exception $e) {
             log_message('error', 'Add status error: ' . $e->getMessage());
             return $this->respondError('Failed to add status: ' . $e->getMessage());
+        }
+    }
+
+    /**
+     * Delete a pengaduan
+     * 
+     * DELETE /api/pengaduan/{id}
+     * Response 200: { "status": true, "message":"Pengaduan berhasil dihapus", "data": null }
+     * Response 400: { "status": false, "message":"Pengaduan dengan status ini tidak dapat dihapus", "data": null }
+     * Response 404: { "status": false, "message":"Pengaduan not found", "data": null }
+     */
+    public function delete($id = null)
+    {
+        // Set headers explicitly for CORS and content type
+        $this->setCorsHeaders();
+        $this->response->setHeader('Content-Type', 'application/json');
+        
+        // Handle OPTIONS preflight requests
+        if ($this->request->getMethod() === 'options') {
+            return $this->response->setStatusCode(200);
+        }
+        
+        try {
+            $userId = $this->getAuthUserId();
+            
+            // Check if pengaduan exists and belongs to the authenticated user
+            $pengaduan = $this->pengaduanModel->find($id);
+            if (!$pengaduan) {
+                return $this->respondNotFound('Pengaduan tidak ditemukan');
+            }
+            
+            if ($pengaduan['user_id'] != $userId) {
+                return $this->respondForbidden('Anda tidak memiliki akses untuk menghapus pengaduan ini');
+            }
+            
+            // Only allow deletion if status is 'pending'
+            if ($pengaduan['status'] !== 'pending') {
+                return $this->respondError('Pengaduan dengan status ini tidak dapat dihapus', 400);
+            }
+            
+            // Delete the pengaduan
+            $this->pengaduanModel->delete($id);
+            
+            // Also delete any associated status history
+            $this->statusHistoryModel->where('pengaduan_id', $id)->delete();
+            
+            return $this->respondSuccess(null, 'Pengaduan berhasil dihapus');
+            
+        } catch (\Exception $e) {
+            log_message('error', 'Delete pengaduan error: ' . $e->getMessage());
+            return $this->respondError('Gagal menghapus pengaduan: ' . $e->getMessage());
         }
     }
 }

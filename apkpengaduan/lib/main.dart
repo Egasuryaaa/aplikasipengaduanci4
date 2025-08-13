@@ -2,8 +2,9 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'providers/auth_provider.dart';
 import 'providers/pengaduan_provider.dart';
+import 'providers/profile_provider.dart';
 import 'screens/login_screen.dart';
-import 'screens/pengaduan_list_screen.dart';
+import 'screens/main_navigation_screen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -18,6 +19,7 @@ class MyApp extends StatelessWidget {
       providers: [
         ChangeNotifierProvider(create: (_) => AuthProvider()),
         ChangeNotifierProvider(create: (_) => PengaduanProvider()),
+        ChangeNotifierProvider(create: (_) => ProfileProvider()),
       ],
       child: Consumer<AuthProvider>(
         builder: (context, authProvider, _) {
@@ -131,7 +133,7 @@ class MyApp extends StatelessWidget {
             themeMode: ThemeMode.system, // Use system theme setting
             home:
                 authProvider.isLoggedIn
-                    ? const PengaduanListScreen()
+                    ? const MainNavigationScreen()
                     : const LoginScreen(),
           );
         },

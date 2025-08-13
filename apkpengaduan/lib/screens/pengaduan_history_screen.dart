@@ -2,19 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:intl/intl.dart';
 import '../providers/pengaduan_provider.dart';
-import '../models/pengaduan.dart';
 import '../widgets/status_badge.dart';
-import 'create_pengaduan_screen.dart';
 import 'pengaduan_detail_screen.dart';
 
-class PengaduanListScreen extends StatefulWidget {
-  const PengaduanListScreen({super.key});
+class PengaduanHistoryScreen extends StatefulWidget {
+  const PengaduanHistoryScreen({super.key});
 
   @override
-  State<PengaduanListScreen> createState() => _PengaduanListScreenState();
+  State<PengaduanHistoryScreen> createState() => _PengaduanHistoryScreenState();
 }
 
-class _PengaduanListScreenState extends State<PengaduanListScreen> {
+class _PengaduanHistoryScreenState extends State<PengaduanHistoryScreen> {
   final _scrollController = ScrollController();
   final _searchController = TextEditingController();
   String? _selectedStatus;
@@ -121,7 +119,7 @@ class _PengaduanListScreenState extends State<PengaduanListScreen> {
                   onSubmitted: (_) => _performSearch(),
                   autofocus: true,
                 )
-                : const Text('Daftar Pengaduan'),
+                : const Text('Riwayat Pengaduan'),
         actions: [
           // Search toggle button
           IconButton(
@@ -190,7 +188,11 @@ class _PengaduanListScreenState extends State<PengaduanListScreen> {
                       child: Column(
                         mainAxisAlignment: MainAxisAlignment.center,
                         children: [
-                          const Icon(Icons.inbox, size: 80, color: Colors.grey),
+                          const Icon(
+                            Icons.history,
+                            size: 80,
+                            color: Colors.grey,
+                          ),
                           const SizedBox(height: 16),
                           Text(
                             'Tidak ada pengaduan ditemukan',
@@ -244,27 +246,10 @@ class _PengaduanListScreenState extends State<PengaduanListScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () {
-          Navigator.of(context)
-              .push(
-                MaterialPageRoute(
-                  builder: (context) => const CreatePengaduanScreen(),
-                ),
-              )
-              .then((value) {
-                // Refresh the list when returning from create screen
-                if (value == true) {
-                  _handleRefresh();
-                }
-              });
-        },
-        child: const Icon(Icons.add),
-      ),
     );
   }
 
-  Widget _buildPengaduanItem(Pengaduan pengaduan) {
+  Widget _buildPengaduanItem(dynamic pengaduan) {
     final formattedDate = DateFormat(
       'dd MMM yyyy, HH:mm',
     ).format(DateTime.parse(pengaduan.createdAt));
@@ -273,18 +258,11 @@ class _PengaduanListScreenState extends State<PengaduanListScreen> {
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: InkWell(
         onTap: () {
-          Navigator.of(context)
-              .push(
-                MaterialPageRoute(
-                  builder: (context) => PengaduanDetailScreen(id: pengaduan.id),
-                ),
-              )
-              .then((value) {
-                // Refresh if returning with a change
-                if (value == true) {
-                  _handleRefresh();
-                }
-              });
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (context) => PengaduanDetailScreen(id: pengaduan.id),
+            ),
+          );
         },
         child: Padding(
           padding: const EdgeInsets.all(16),
@@ -337,20 +315,13 @@ class _PengaduanListScreenState extends State<PengaduanListScreen> {
                   ),
                   TextButton(
                     onPressed: () {
-                      Navigator.of(context)
-                          .push(
-                            MaterialPageRoute(
-                              builder:
-                                  (context) =>
-                                      PengaduanDetailScreen(id: pengaduan.id),
-                            ),
-                          )
-                          .then((value) {
-                            // Refresh if returning with a change
-                            if (value == true) {
-                              _handleRefresh();
-                            }
-                          });
+                      Navigator.of(context).push(
+                        MaterialPageRoute(
+                          builder:
+                              (context) =>
+                                  PengaduanDetailScreen(id: pengaduan.id),
+                        ),
+                      );
                     },
                     child: const Text('Detail'),
                   ),
