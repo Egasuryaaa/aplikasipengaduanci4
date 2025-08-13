@@ -20,403 +20,432 @@ class AuthController extends ResourceController
 
     public function register()
     {
-        $validation = \Config\Services::validation();
-        
-        $rules = [
-            'name' => [
-                'rules' => 'required|min_length[3]|max_length[255]',
-                'errors' => [
-                    'required' => 'Nama harus diisi',
-                    'min_length' => 'Nama minimal 3 karakter',
-                    'max_length' => 'Nama maksimal 255 karakter'
-                ]
-            ],
-            'email' => [
-                'rules' => 'required|valid_email|is_unique[users.email]',
-                'errors' => [
-                    'required' => 'Email harus diisi',
-                    'valid_email' => 'Format email tidak valid',
-                    'is_unique' => 'Email sudah terdaftar'
-                ]
-            ],
-            'phone' => [
-                'rules' => 'permit_empty|numeric|min_length[10]|max_length[15]',
-                'errors' => [
-                    'numeric' => 'Nomor telepon harus berupa angka',
-                    'min_length' => 'Nomor telepon minimal 10 digit',
-                    'max_length' => 'Nomor telepon maksimal 15 digit'
-                ]
-            ],
-            'password' => [
-                'rules' => 'required|min_length[8]',
-                'errors' => [
-                    'required' => 'Password harus diisi',
-                    'min_length' => 'Password minimal 8 karakter'
-                ]
-            ],
-            'password_confirm' => [
-                'rules' => 'required|matches[password]',
-                'errors' => [
-                    'required' => 'Konfirmasi password harus diisi',
-                    'matches' => 'Konfirmasi password tidak cocok'
-                ]
-            ],
-            'instansi_id' => [
-                'rules' => 'permit_empty|integer',
-                'errors' => [
-                    'integer' => 'ID instansi tidak valid'
-                ]
-            ]
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validation->getErrors()
-            ], 400);
-        }
-
-        $userData = [
-            'name' => $this->request->getPost('name'),
-            'email' => $this->request->getPost('email'),
-            'phone' => $this->request->getPost('phone'),
-            'password' => $this->request->getPost('password'),
-            'instansi_id' => $this->request->getPost('instansi_id'),
-            'role' => 'user',
-            'is_active' => true
-        ];
-
         try {
+            $validation = \Config\Services::validation();
+            
+            $rules = [
+                'name' => [
+                    'rules' => 'required|min_length[3]|max_length[255]',
+                    'errors' => [
+                        'required' => 'Nama harus diisi',
+                        'min_length' => 'Nama minimal 3 karakter',
+                        'max_length' => 'Nama maksimal 255 karakter'
+                    ]
+                ],
+                'email' => [
+                    'rules' => 'required|valid_email|is_unique[users.email]',
+                    'errors' => [
+                        'required' => 'Email harus diisi',
+                        'valid_email' => 'Format email tidak valid',
+                        'is_unique' => 'Email sudah terdaftar'
+                    ]
+                ],
+                'phone' => [
+                    'rules' => 'permit_empty|numeric|min_length[10]|max_length[15]',
+                    'errors' => [
+                        'numeric' => 'Nomor telepon harus berupa angka',
+                        'min_length' => 'Nomor telepon minimal 10 digit',
+                        'max_length' => 'Nomor telepon maksimal 15 digit'
+                    ]
+                ],
+                'password' => [
+                    'rules' => 'required|min_length[6]',
+                    'errors' => [
+                        'required' => 'Password harus diisi',
+                        'min_length' => 'Password minimal 6 karakter'
+                    ]
+                ],
+                'password_confirmation' => [
+                    'rules' => 'required|matches[password]',
+                    'errors' => [
+                        'required' => 'Konfirmasi password harus diisi',
+                        'matches' => 'Konfirmasi password tidak cocok'
+                    ]
+                ],
+                'instansi_id' => [
+                    'rules' => 'permit_empty|integer',
+                    'errors' => [
+                        'integer' => 'ID instansi tidak valid'
+                    ]
+                ]
+            ];
+
+            if (!$this->validate($rules)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'data' => [
+                        'errors' => $validation->getErrors()
+                    ]
+                ], 400);
+            }
+
+            // Verify instansi exists if provided
+            if ($this->request->getPost('instansi_id')) {
+                $instansiModel = new \App\Models\InstansiModel();
+                $instansi = $instansiModel->find($this->request->getPost('instansi_id'));
+                if (!$instansi) {
+                    return response()->json([
+                        'status' => false,
+                        'message' => 'Instansi tidak ditemukan',
+                        'data' => null
+                    ], 400);
+                }
+            }
+
+            $userData = [
+                'name' => $this->request->getPost('name'),
+                'email' => $this->request->getPost('email'),
+                'phone' => $this->request->getPost('phone'),
+                'password' => password_hash($this->request->getPost('password'), PASSWORD_DEFAULT),
+                'role' => 'user',
+                'instansi_id' => $this->request->getPost('instansi_id'),
+                'is_active' => true
+            ];
+
             $userId = $this->userModel->insert($userData);
 
             if ($userId) {
-                // Get user data for response
+                // Get created user
                 $user = $this->userModel->find($userId);
+                
+                // Remove password from response
                 unset($user['password']);
 
-                // Generate JWT token
-                $token = $this->generateJWT($user);
+                log_message('info', 'New user registered: ' . $user['email']);
 
-                // Create notification for welcome
-                $notificationModel = new \App\Models\NotificationModel();
-                $notificationModel->createNotification(
-                    $userId,
-                    'Selamat Datang!',
-                    'Akun Anda telah berhasil dibuat. Sekarang Anda dapat mengajukan pengaduan.',
-                    'success'
-                );
-
-                log_message('info', 'User registered: ' . $user['email']);
-
-                return $this->respond([
-                    'success' => true,
+                return response()->json([
+                    'status' => true,
                     'message' => 'Registrasi berhasil',
                     'data' => [
-                        'user' => $user,
-                        'token' => $token['access_token'],
-                        'refresh_token' => $token['refresh_token'],
-                        'expires_in' => $token['expires_in']
+                        'user' => $user
                     ]
                 ], 201);
             } else {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Gagal membuat akun'
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Gagal mendaftarkan pengguna',
+                    'data' => null
                 ], 500);
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Registration error: ' . $e->getMessage());
-            return $this->respond([
-                'success' => false,
-                'message' => 'Terjadi kesalahan sistem'
+            log_message('error', 'Error in AuthController@register: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
             ], 500);
         }
     }
 
     public function login()
     {
-        $validation = \Config\Services::validation();
-        
-        $rules = [
-            'email' => [
-                'rules' => 'required|valid_email',
-                'errors' => [
-                    'required' => 'Email harus diisi',
-                    'valid_email' => 'Format email tidak valid'
-                ]
-            ],
-            'password' => [
-                'rules' => 'required',
-                'errors' => [
-                    'required' => 'Password harus diisi'
-                ]
-            ]
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validation->getErrors()
-            ], 400);
-        }
-
-        $email = $this->request->getPost('email');
-        $password = $this->request->getPost('password');
-
-        // Find user by email
-        $user = $this->userModel->findByEmail($email);
-
-        if (!$user) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Email atau password salah'
-            ], 401);
-        }
-
-        // Verify password
-        if (!password_verify($password, $user['password'])) {
-            log_message('security', 'Failed API login attempt for email: ' . $email . ' from IP: ' . $this->request->getIPAddress());
-            return $this->respond([
-                'success' => false,
-                'message' => 'Email atau password salah'
-            ], 401);
-        }
-
-        // Check if user is active
-        if (!$user['is_active']) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Akun Anda tidak aktif'
-            ], 401);
-        }
-
-        // Update last login
-        $this->userModel->updateLastLogin($user['id']);
-
-        // Remove password from response
-        unset($user['password']);
-
-        // Generate JWT token
-        $token = $this->generateJWT($user);
-
-        log_message('info', 'API user logged in: ' . $user['email']);
-
-        return $this->respond([
-            'success' => true,
-            'message' => 'Login berhasil',
-            'data' => [
-                'user' => $user,
-                'token' => $token['access_token'],
-                'refresh_token' => $token['refresh_token'],
-                'expires_in' => $token['expires_in']
-            ]
-        ]);
-    }
-
-    public function refresh()
-    {
-        $refreshToken = $this->request->getPost('refresh_token');
-
-        if (!$refreshToken) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Refresh token required'
-            ], 400);
-        }
-
         try {
-            $key = getenv('JWT_SECRET_KEY') ?: 'your-secret-key-change-in-production';
-            $decoded = JWT::decode($refreshToken, new Key($key, 'HS256'));
+            $validation = \Config\Services::validation();
+            
+            $rules = [
+                'email' => [
+                    'rules' => 'required|valid_email',
+                    'errors' => [
+                        'required' => 'Email harus diisi',
+                        'valid_email' => 'Format email tidak valid'
+                    ]
+                ],
+                'password' => [
+                    'rules' => 'required',
+                    'errors' => [
+                        'required' => 'Password harus diisi'
+                    ]
+                ]
+            ];
 
-            // Verify this is a refresh token
-            if (!isset($decoded->type) || $decoded->type !== 'refresh') {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Invalid refresh token'
+            if (!$this->validate($rules)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'data' => [
+                        'errors' => $validation->getErrors()
+                    ]
+                ], 400);
+            }
+
+            $email = $this->request->getPost('email');
+            $password = $this->request->getPost('password');
+
+            // Find user by email
+            $user = $this->userModel->where('email', $email)->first();
+
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Email atau password salah',
+                    'data' => null
                 ], 401);
             }
 
-            // Get user data
-            $user = $this->userModel->find($decoded->user_id);
-            if (!$user || !$user['is_active']) {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'User account is inactive'
+            // Verify password
+            if (!password_verify($password, $user['password'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Email atau password salah',
+                    'data' => null
                 ], 401);
             }
 
-            unset($user['password']);
+            // Check if user is active
+            if (!$user['is_active']) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Akun Anda tidak aktif. Silakan hubungi administrator',
+                    'data' => null
+                ], 403);
+            }
 
-            // Generate new tokens
+            // Generate JWT token
             $token = $this->generateJWT($user);
 
-            return $this->respond([
-                'success' => true,
-                'message' => 'Token refreshed',
-                'data' => [
-                    'token' => $token['access_token'],
-                    'refresh_token' => $token['refresh_token'],
-                    'expires_in' => $token['expires_in']
-                ]
+            // Remove password from response
+            unset($user['password']);
+
+            // Update last login
+            $this->userModel->update($user['id'], [
+                'last_login' => date('Y-m-d H:i:s')
             ]);
 
+            log_message('info', 'User logged in: ' . $user['email']);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Login berhasil',
+                'data' => [
+                    'user' => $user,
+                    'token' => $token['access_token'],
+                    'token_type' => 'Bearer',
+                    'expires_in' => $token['expires_in']
+                ]
+            ], 200);
+
         } catch (\Exception $e) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Invalid refresh token'
-            ], 401);
+            log_message('error', 'Error in AuthController@login: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
         }
     }
 
     public function profile()
     {
-        $userId = $this->request->user_id;
-        $user = $this->userModel->find($userId);
+        try {
+            $userId = $this->request->user_id;
+            $user = $this->userModel->find($userId);
 
-        if (!$user) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'User not found'
-            ], 404);
+            if (!$user) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'User tidak ditemukan',
+                    'data' => null
+                ], 404);
+            }
+
+            // Remove password from response
+            unset($user['password']);
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Data profil berhasil diambil',
+                'data' => [
+                    'user' => $user
+                ]
+            ], 200);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error in AuthController@profile: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
         }
-
-        unset($user['password']);
-
-        // Get instansi data if exists
-        if ($user['instansi_id']) {
-            $instansiModel = new \App\Models\InstansiModel();
-            $instansi = $instansiModel->find($user['instansi_id']);
-            $user['instansi'] = $instansi;
-        }
-
-        return $this->respond([
-            'success' => true,
-            'message' => 'Profile data retrieved',
-            'data' => $user
-        ]);
     }
 
     public function updateProfile()
     {
-        $userId = $this->request->user_id;
-        
-        $validation = \Config\Services::validation();
-        $rules = [
-            'name' => 'required|min_length[3]|max_length[255]',
-            'phone' => 'permit_empty|numeric|min_length[10]|max_length[15]',
-            'instansi_id' => 'permit_empty|integer'
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validation->getErrors()
-            ], 400);
-        }
-
-        $updateData = [
-            'name' => $this->request->getPost('name'),
-            'phone' => $this->request->getPost('phone'),
-            'instansi_id' => $this->request->getPost('instansi_id')
-        ];
-
         try {
-            $result = $this->userModel->update($userId, $updateData);
+            $userId = $this->request->user_id;
+            $validation = \Config\Services::validation();
+            
+            $rules = [
+                'name' => [
+                    'rules' => 'required|min_length[3]|max_length[100]',
+                    'errors' => [
+                        'required' => 'Nama harus diisi',
+                        'min_length' => 'Nama minimal 3 karakter',
+                        'max_length' => 'Nama maksimal 100 karakter'
+                    ]
+                ],
+                'phone' => [
+                    'rules' => 'permit_empty|min_length[10]|max_length[15]|regex_match[/^[0-9]+$/]',
+                    'errors' => [
+                        'min_length' => 'Nomor telepon minimal 10 digit',
+                        'max_length' => 'Nomor telepon maksimal 15 digit',
+                        'regex_match' => 'Nomor telepon hanya boleh berisi angka'
+                    ]
+                ]
+            ];
 
-            if ($result) {
+            if (!$this->validate($rules)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'data' => [
+                        'errors' => $validation->getErrors()
+                    ]
+                ], 400);
+            }
+
+            $updateData = [
+                'name' => $this->request->getPost('name'),
+                'phone' => $this->request->getPost('phone')
+            ];
+
+            if ($this->userModel->update($userId, $updateData)) {
                 $user = $this->userModel->find($userId);
                 unset($user['password']);
 
-                return $this->respond([
-                    'success' => true,
-                    'message' => 'Profile berhasil diperbarui',
-                    'data' => $user
-                ]);
+                log_message('info', 'User profile updated: ' . $user['email']);
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Profil berhasil diperbarui',
+                    'data' => [
+                        'user' => $user
+                    ]
+                ], 200);
             } else {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Gagal memperbarui profile'
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Gagal memperbarui profil',
+                    'data' => null
                 ], 500);
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Profile update error: ' . $e->getMessage());
-            return $this->respond([
-                'success' => false,
-                'message' => 'Terjadi kesalahan sistem'
+            log_message('error', 'Error in AuthController@updateProfile: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
             ], 500);
         }
     }
 
     public function changePassword()
     {
-        $userId = $this->request->user_id;
-        
-        $validation = \Config\Services::validation();
-        $rules = [
-            'current_password' => 'required',
-            'new_password' => 'required|min_length[8]',
-            'confirm_password' => 'required|matches[new_password]'
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Validasi gagal',
-                'errors' => $validation->getErrors()
-            ], 400);
-        }
-
-        $user = $this->userModel->find($userId);
-        $currentPassword = $this->request->getPost('current_password');
-        $newPassword = $this->request->getPost('new_password');
-
-        // Verify current password
-        if (!password_verify($currentPassword, $user['password'])) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Password saat ini salah'
-            ], 400);
-        }
-
         try {
-            $result = $this->userModel->update($userId, [
-                'password' => password_hash($newPassword, PASSWORD_DEFAULT)
-            ]);
+            $userId = $this->request->user_id;
+            $validation = \Config\Services::validation();
+            
+            $rules = [
+                'current_password' => [
+                    'rules' => 'required',
+                    'errors' => [
+                        'required' => 'Password saat ini harus diisi'
+                    ]
+                ],
+                'new_password' => [
+                    'rules' => 'required|min_length[6]',
+                    'errors' => [
+                        'required' => 'Password baru harus diisi',
+                        'min_length' => 'Password baru minimal 6 karakter'
+                    ]
+                ],
+                'confirm_password' => [
+                    'rules' => 'required|matches[new_password]',
+                    'errors' => [
+                        'required' => 'Konfirmasi password harus diisi',
+                        'matches' => 'Konfirmasi password tidak cocok'
+                    ]
+                ]
+            ];
 
-            if ($result) {
-                return $this->respond([
-                    'success' => true,
-                    'message' => 'Password berhasil diubah'
-                ]);
+            if (!$this->validate($rules)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Validasi gagal',
+                    'data' => [
+                        'errors' => $validation->getErrors()
+                    ]
+                ], 400);
+            }
+
+            $user = $this->userModel->find($userId);
+            
+            if (!password_verify($this->request->getPost('current_password'), $user['password'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Password saat ini salah',
+                    'data' => null
+                ], 400);
+            }
+
+            $updateData = [
+                'password' => password_hash($this->request->getPost('new_password'), PASSWORD_DEFAULT)
+            ];
+
+            if ($this->userModel->update($userId, $updateData)) {
+                log_message('info', 'User password changed: ' . $user['email']);
+
+                return response()->json([
+                    'status' => true,
+                    'message' => 'Password berhasil diubah',
+                    'data' => null
+                ], 200);
             } else {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Gagal mengubah password'
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Gagal mengubah password',
+                    'data' => null
                 ], 500);
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'Password change error: ' . $e->getMessage());
-            return $this->respond([
-                'success' => false,
-                'message' => 'Terjadi kesalahan sistem'
+            log_message('error', 'Error in AuthController@changePassword: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
             ], 500);
         }
     }
 
     public function logout()
     {
-        // In a real implementation, you might want to blacklist the token
-        // For now, we'll just return success
-        return $this->respond([
-            'success' => true,
-            'message' => 'Logout berhasil'
-        ]);
+        try {
+            // In a stateless JWT system, logout is typically handled on the client side
+            // by simply removing the token. However, we can log the action.
+            $userId = $this->request->user_id ?? null;
+            
+            if ($userId) {
+                log_message('info', 'User logged out: ' . $userId);
+            }
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Logout berhasil',
+                'data' => null
+            ], 200);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error in AuthController@logout: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
+        }
     }
 
     private function generateJWT($user)

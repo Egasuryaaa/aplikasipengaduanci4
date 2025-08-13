@@ -2,233 +2,289 @@
 
 namespace App\Controllers\Api;
 
-use CodeIgniter\RESTful\ResourceController;
+use App\Controllers\BaseController;
+use CodeIgniter\HTTP\ResponseInterface;
 
-class FileController extends ResourceController
+class FileController extends BaseController
 {
-    protected $format = 'json';
-
-    public function upload()
+    public function uploadImage()
     {
-        $validation = \Config\Services::validation();
-        
-        // Validate file upload
-        $rules = [
-            'files' => [
-                'rules' => 'uploaded[files]|max_size[files,5120]|is_image[files]|mime_in[files,image/jpg,image/jpeg,image/png]',
-                'errors' => [
-                    'uploaded' => 'File harus diupload',
-                    'max_size' => 'Ukuran file maksimal 5MB',
-                    'is_image' => 'File harus berupa gambar',
-                    'mime_in' => 'Format file harus JPG, JPEG, atau PNG'
-                ]
-            ]
-        ];
-
-        if (!$this->validate($rules)) {
-            return $this->respond([
-                'success' => false,
-                'message' => 'Validasi file gagal',
-                'errors' => $validation->getErrors()
-            ], 400);
-        }
-
-        $uploadedFiles = $this->request->getFiles();
-        $files = $uploadedFiles['files'] ?? [];
-        
-        // Handle single file or multiple files
-        if (!is_array($files)) {
-            $files = [$files];
-        }
-
-        $uploadedFileNames = [];
-        $uploadPath = WRITEPATH . 'uploads/pengaduan/';
-
-        // Create upload directory if not exists
-        if (!is_dir($uploadPath)) {
-            mkdir($uploadPath, 0755, true);
-        }
-
         try {
-            foreach ($files as $file) {
-                if ($file->isValid() && !$file->hasMoved()) {
-                    // Generate unique filename
-                    $newName = $file->getRandomName();
-                    
-                    // Move file to upload directory
-                    if ($file->move($uploadPath, $newName)) {
-                        // Compress image if needed
-                        $this->compressImage($uploadPath . $newName);
-                        
-                        $uploadedFileNames[] = $newName;
-                        
-                        log_message('info', 'File uploaded: ' . $newName . ' by user ID: ' . $this->request->user_id);
-                    } else {
-                        log_message('error', 'Failed to move uploaded file: ' . $file->getName());
-                    }
-                }
+            // Check if file was uploaded
+            $file = $this->request->getFile('image');
+            
+            if (!$file) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada file yang diupload',
+                    'data' => null
+                ], 400);
             }
 
-            if (!empty($uploadedFileNames)) {
-                // Return file URLs
-                $fileUrls = array_map(function($filename) {
-                    return [
-                        'filename' => $filename,
-                        'url' => base_url('uploads/pengaduan/' . $filename),
-                        'thumbnail' => base_url('uploads/pengaduan/thumbs/' . $filename)
-                    ];
-                }, $uploadedFileNames);
+            // Validate file
+            if (!$file->isValid()) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'File tidak valid: ' . $file->getErrorString(),
+                    'data' => null
+                ], 400);
+            }
 
-                return $this->respond([
-                    'success' => true,
+            // Check file type
+            $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+            if (!in_array($file->getMimeType(), $allowedTypes)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tipe file tidak didukung. Hanya JPEG, JPG, dan PNG yang diizinkan',
+                    'data' => null
+                ], 400);
+            }
+
+            // Check file size (max 5MB)
+            $maxSize = 5 * 1024 * 1024; // 5MB in bytes
+            if ($file->getSize() > $maxSize) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Ukuran file terlalu besar. Maksimal 5MB',
+                    'data' => null
+                ], 400);
+            }
+
+            // Generate unique filename
+            $extension = $file->getClientExtension();
+            $filename = uniqid() . '_' . time() . '.' . $extension;
+
+            // Set upload path
+            $uploadPath = FCPATH . 'uploads/pengaduan/';
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
+            }
+
+            // Move file to upload directory
+            if ($file->move($uploadPath, $filename)) {
+                $fileUrl = base_url('uploads/pengaduan/' . $filename);
+                
+                log_message('info', 'File uploaded successfully: ' . $filename);
+                
+                return response()->json([
+                    'status' => true,
                     'message' => 'File berhasil diupload',
                     'data' => [
-                        'files' => $fileUrls,
-                        'filenames' => $uploadedFileNames
+                        'filename' => $filename,
+                        'url' => $fileUrl,
+                        'size' => $file->getSize(),
+                        'type' => $file->getMimeType()
                     ]
-                ], 201);
+                ], 200);
             } else {
-                return $this->respond([
-                    'success' => false,
-                    'message' => 'Gagal mengupload file'
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Gagal mengupload file',
+                    'data' => null
                 ], 500);
             }
 
         } catch (\Exception $e) {
-            log_message('error', 'File upload error: ' . $e->getMessage());
-            return $this->respond([
-                'success' => false,
-                'message' => 'Terjadi kesalahan saat mengupload file'
+            log_message('error', 'Error in FileController@uploadImage: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
             ], 500);
         }
     }
 
-    private function compressImage($filePath)
+    public function uploadMultiple()
     {
         try {
-            $imageInfo = getimagesize($filePath);
-            $mimeType = $imageInfo['mime'];
-
-            // Load image based on type
-            switch ($mimeType) {
-                case 'image/jpeg':
-                    $image = imagecreatefromjpeg($filePath);
-                    break;
-                case 'image/png':
-                    $image = imagecreatefrompng($filePath);
-                    break;
-                default:
-                    return; // Unsupported format
+            $files = $this->request->getFiles();
+            
+            if (empty($files['images'])) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada file yang diupload',
+                    'data' => null
+                ], 400);
             }
 
-            if (!$image) return;
-
-            $width = imagesx($image);
-            $height = imagesy($image);
-
-            // Resize if image is too large
-            $maxWidth = 1200;
-            $maxHeight = 1200;
-
-            if ($width > $maxWidth || $height > $maxHeight) {
-                $ratio = min($maxWidth / $width, $maxHeight / $height);
-                $newWidth = intval($width * $ratio);
-                $newHeight = intval($height * $ratio);
-
-                $resizedImage = imagecreatetruecolor($newWidth, $newHeight);
-                
-                // Preserve transparency for PNG
-                if ($mimeType === 'image/png') {
-                    imagealphablending($resizedImage, false);
-                    imagesavealpha($resizedImage, true);
-                }
-
-                imagecopyresampled($resizedImage, $image, 0, 0, 0, 0, $newWidth, $newHeight, $width, $height);
-
-                // Save compressed image
-                switch ($mimeType) {
-                    case 'image/jpeg':
-                        imagejpeg($resizedImage, $filePath, 85); // 85% quality
-                        break;
-                    case 'image/png':
-                        imagepng($resizedImage, $filePath, 6); // Compression level 6
-                        break;
-                }
-
-                imagedestroy($resizedImage);
+            $uploadedFiles = [];
+            $errors = [];
+            $uploadPath = FCPATH . 'uploads/pengaduan/';
+            
+            // Create directory if it doesn't exist
+            if (!is_dir($uploadPath)) {
+                mkdir($uploadPath, 0755, true);
             }
 
-            // Create thumbnail
-            $this->createThumbnail($filePath, $mimeType);
+            foreach ($files['images'] as $file) {
+                if (!$file->isValid()) {
+                    $errors[] = 'File tidak valid: ' . $file->getErrorString();
+                    continue;
+                }
 
-            imagedestroy($image);
+                // Check file type
+                $allowedTypes = ['image/jpeg', 'image/png', 'image/jpg'];
+                if (!in_array($file->getMimeType(), $allowedTypes)) {
+                    $errors[] = 'Tipe file tidak didukung: ' . $file->getClientName();
+                    continue;
+                }
+
+                // Check file size (max 5MB)
+                $maxSize = 5 * 1024 * 1024; // 5MB in bytes
+                if ($file->getSize() > $maxSize) {
+                    $errors[] = 'File terlalu besar: ' . $file->getClientName();
+                    continue;
+                }
+
+                // Generate unique filename
+                $extension = $file->getClientExtension();
+                $filename = uniqid() . '_' . time() . '.' . $extension;
+
+                // Move file to upload directory
+                if ($file->move($uploadPath, $filename)) {
+                    $uploadedFiles[] = [
+                        'filename' => $filename,
+                        'url' => base_url('uploads/pengaduan/' . $filename),
+                        'size' => $file->getSize(),
+                        'type' => $file->getMimeType(),
+                        'original_name' => $file->getClientName()
+                    ];
+                } else {
+                    $errors[] = 'Gagal mengupload: ' . $file->getClientName();
+                }
+            }
+
+            if (!empty($uploadedFiles)) {
+                $response = [
+                    'status' => true,
+                    'message' => count($uploadedFiles) . ' file berhasil diupload',
+                    'data' => [
+                        'uploaded_files' => $uploadedFiles,
+                        'total_uploaded' => count($uploadedFiles)
+                    ]
+                ];
+
+                if (!empty($errors)) {
+                    $response['data']['errors'] = $errors;
+                    $response['data']['total_errors'] = count($errors);
+                }
+
+                return response()->json($response, 200);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Tidak ada file yang berhasil diupload',
+                    'data' => [
+                        'errors' => $errors
+                    ]
+                ], 400);
+            }
 
         } catch (\Exception $e) {
-            log_message('error', 'Image compression error: ' . $e->getMessage());
+            log_message('error', 'Error in FileController@uploadMultiple: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
         }
     }
 
-    private function createThumbnail($filePath, $mimeType)
+    public function deleteFile($filename = null)
     {
         try {
-            $thumbPath = dirname($filePath) . '/thumbs/';
-            
-            // Create thumbs directory if not exists
-            if (!is_dir($thumbPath)) {
-                mkdir($thumbPath, 0755, true);
+            if (!$filename) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Nama file harus disediakan',
+                    'data' => null
+                ], 400);
             }
 
-            $filename = basename($filePath);
-            $thumbFile = $thumbPath . $filename;
+            // Sanitize filename to prevent directory traversal
+            $filename = basename($filename);
+            $filePath = FCPATH . 'uploads/pengaduan/' . $filename;
 
-            // Load original image
-            switch ($mimeType) {
-                case 'image/jpeg':
-                    $image = imagecreatefromjpeg($filePath);
-                    break;
-                case 'image/png':
-                    $image = imagecreatefrompng($filePath);
-                    break;
-                default:
-                    return;
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'File tidak ditemukan',
+                    'data' => null
+                ], 404);
             }
 
-            if (!$image) return;
-
-            $width = imagesx($image);
-            $height = imagesy($image);
-
-            // Calculate thumbnail dimensions (300x300 max)
-            $thumbSize = 300;
-            $ratio = min($thumbSize / $width, $thumbSize / $height);
-            $thumbWidth = intval($width * $ratio);
-            $thumbHeight = intval($height * $ratio);
-
-            $thumbnail = imagecreatetruecolor($thumbWidth, $thumbHeight);
-
-            // Preserve transparency for PNG
-            if ($mimeType === 'image/png') {
-                imagealphablending($thumbnail, false);
-                imagesavealpha($thumbnail, true);
+            if (unlink($filePath)) {
+                log_message('info', 'File deleted successfully: ' . $filename);
+                
+                return response()->json([
+                    'status' => true,
+                    'message' => 'File berhasil dihapus',
+                    'data' => null
+                ], 200);
+            } else {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Gagal menghapus file',
+                    'data' => null
+                ], 500);
             }
-
-            imagecopyresampled($thumbnail, $image, 0, 0, 0, 0, $thumbWidth, $thumbHeight, $width, $height);
-
-            // Save thumbnail
-            switch ($mimeType) {
-                case 'image/jpeg':
-                    imagejpeg($thumbnail, $thumbFile, 80);
-                    break;
-                case 'image/png':
-                    imagepng($thumbnail, $thumbFile, 6);
-                    break;
-            }
-
-            imagedestroy($thumbnail);
-            imagedestroy($image);
 
         } catch (\Exception $e) {
-            log_message('error', 'Thumbnail creation error: ' . $e->getMessage());
+            log_message('error', 'Error in FileController@deleteFile: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
+        }
+    }
+
+    public function getFileInfo($filename = null)
+    {
+        try {
+            if (!$filename) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'Nama file harus disediakan',
+                    'data' => null
+                ], 400);
+            }
+
+            // Sanitize filename to prevent directory traversal
+            $filename = basename($filename);
+            $filePath = FCPATH . 'uploads/pengaduan/' . $filename;
+
+            if (!file_exists($filePath)) {
+                return response()->json([
+                    'status' => false,
+                    'message' => 'File tidak ditemukan',
+                    'data' => null
+                ], 404);
+            }
+
+            $fileInfo = [
+                'filename' => $filename,
+                'url' => base_url('uploads/pengaduan/' . $filename),
+                'size' => filesize($filePath),
+                'modified' => date('Y-m-d H:i:s', filemtime($filePath)),
+                'type' => mime_content_type($filePath)
+            ];
+
+            return response()->json([
+                'status' => true,
+                'message' => 'Informasi file berhasil diambil',
+                'data' => $fileInfo
+            ], 200);
+
+        } catch (\Exception $e) {
+            log_message('error', 'Error in FileController@getFileInfo: ' . $e->getMessage());
+            return response()->json([
+                'status' => false,
+                'message' => 'Terjadi kesalahan sistem',
+                'data' => null
+            ], 500);
         }
     }
 }

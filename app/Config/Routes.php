@@ -101,7 +101,10 @@ $routes->group('api', ['filter' => 'cors_custom'], function($routes) {
         $routes->post('pengaduan/(:segment)/cancel', 'Api\PengaduanController::cancelPengaduan/$1');
         
         // File upload
-        $routes->post('upload', 'Api\FileController::upload');
+        $routes->post('files/upload', 'Api\FileController::uploadImage');
+        $routes->post('files/upload-multiple', 'Api\FileController::uploadMultiple');
+        $routes->delete('files/(:segment)', 'Api\FileController::deleteFile/$1');
+        $routes->get('files/(:segment)', 'Api\FileController::getFileInfo/$1');
         
         // Notifications
         $routes->get('notifications', 'Api\NotificationController::index');
