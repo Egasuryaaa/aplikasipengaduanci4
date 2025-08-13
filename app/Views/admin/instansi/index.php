@@ -1,0 +1,148 @@
+<?= $this->extend('admin/layout/main') ?>
+
+<?= $this->section('content') ?>
+<div class="row mb-4">
+    <div class="col-12">
+        <h1 class="h3 mb-0">Manajemen Instansi</h1>
+        <p class="text-muted">Kelola data instansi dalam sistem</p>
+    </div>
+</div>
+
+<div class="row">
+    <div class="col-12">
+        <div class="card shadow">
+            <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
+                <h6 class="m-0 font-weight-bold text-white">Daftar Instansi</h6>
+                <a href="<?= base_url('admin/instansi/create') ?>" class="btn btn-primary btn-sm">
+                    <i class="fas fa-plus"></i> Tambah Instansi
+                </a>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-bordered" id="instansiTable" width="100%" cellspacing="0">
+                        <thead>
+                            <tr>
+                                <th>ID</th>
+                                <th>Nama Instansi</th>
+                                <th>Alamat</th>
+                                <th>Email</th>
+                                <th>Telepon</th>
+                                <th>Status</th>
+                                <th>Aksi</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <?php if (isset($instansi) && !empty($instansi)): ?>
+                                <?php foreach ($instansi as $item): ?>
+                                <tr>
+                                    <td><?= $item['id'] ?></td>
+                                    <td>
+                                        <strong><?= $item['nama'] ?></strong>
+                                    </td>
+                                    <td><?= $item['alamat'] ?: '-' ?></td>
+                                    <td><?= $item['email'] ?: '-' ?></td>
+                                    <td><?= $item['telepon'] ?: '-' ?></td>
+                                    <td>
+                                        <?= $item['is_active'] ? 
+                                            '<span class="badge bg-success">Aktif</span>' : 
+                                            '<span class="badge bg-secondary">Tidak Aktif</span>' ?>
+                                    </td>
+                                    <td>
+                                        <div class="btn-group" role="group">
+                                            <a href="<?= base_url('admin/instansi/' . $item['id'] . '/edit') ?>" 
+                                               class="btn btn-sm btn-warning" title="Edit">
+                                                <i class="fas fa-edit"></i>
+                                            </a>
+                                            <button type="button" class="btn btn-sm btn-danger" 
+                                                    onclick="deleteInstansi('<?= $item['id'] ?>')" title="Hapus">
+                                                <i class="fas fa-trash"></i>
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                                <?php endforeach; ?>
+                            <?php else: ?>
+                                <tr>
+                                    <td colspan="7" class="text-center">Tidak ada data instansi</td>
+                                </tr>
+                            <?php endif; ?>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Delete Modal -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">Konfirmasi Hapus</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Apakah Anda yakin ingin menghapus instansi ini?</p>
+                <p class="text-danger"><strong>Tindakan ini tidak dapat dibatalkan!</strong></p>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                <button type="button" class="btn btn-danger" id="confirmDelete">Hapus</button>
+            </div>
+        </div>
+    </div>
+</div>
+<?= $this->endSection() ?>
+
+<?= $this->section('scripts') ?>
+<script>
+    // Initialize DataTable without column count issue
+    $(document).ready(function() {
+        $('#instansiTable').DataTable({
+            "pageLength": 25,
+            "ordering": true,
+            "columnDefs": [
+                { "orderable": false, "targets": [6] } // Disable ordering on action column
+            ],
+            "language": {
+                "url": "//cdn.datatables.net/plug-ins/1.13.4/i18n/id.json"
+            }
+        });
+    });
+
+    // Delete function
+    let deleteId = null;
+    
+    function deleteInstansi(id) {
+        deleteId = id;
+        const deleteModal = new bootstrap.Modal(document.getElementById('deleteModal'));
+        deleteModal.show();
+    }
+    
+    document.getElementById('confirmDelete').addEventListener('click', function() {
+        if (deleteId) {
+            fetch(`<?= base_url('admin/instansi/') ?>${deleteId}`, {
+                method: 'DELETE',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest',
+                    'Content-Type': 'application/json',
+                    'X-CSRF-TOKEN': '<?= csrf_hash() ?>'
+                }
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.success) {
+                    location.reload();
+                } else {
+                    alert(data.message || 'Gagal menghapus instansi');
+                }
+            })
+            .catch(error => {
+                console.error('Error:', error);
+                alert('Terjadi kesalahan sistem');
+            });
+        }
+    });
+</script>
+<?= $this->endSection() ?>
