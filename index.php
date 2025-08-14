@@ -56,4 +56,8 @@ $paths = new Paths();
 // LOAD THE FRAMEWORK BOOTSTRAP FILE
 require $paths->systemDirectory . '/Boot.php';
 
+if (isset($_SERVER['HTTP_AUTHORIZATION'])) {
+    $_SERVER['Authorization'] = $_SERVER['HTTP_AUTHORIZATION'];
+}
+
 exit(Boot::bootWeb($paths));

@@ -46,8 +46,8 @@ class UserController extends ApiController
         $this->setCorsHeaders();
         
         // Get authenticated user
-        $user = $this->getAuthenticatedUser();
-        if (!$user) {
+        $userId = $this->getAuthUserId();
+        if (!$userId) {
             return $this->respondError('Unauthorized', 401);
         }
         
@@ -55,7 +55,7 @@ class UserController extends ApiController
         $userData = $this->userModel
             ->select('users.id, users.uuid, users.name, users.email, users.phone, users.instansi_id, users.role, users.is_active, users.created_at, users.updated_at, instansi.nama as instansi_nama, instansi.alamat as instansi_alamat, instansi.telepon as instansi_telepon, instansi.email as instansi_email')
             ->join('instansi', 'instansi.id = users.instansi_id', 'left')
-            ->where('users.id', $user['id'])
+            ->where('users.id', $userId)
             ->first();
         
         if (!$userData) {
@@ -112,8 +112,8 @@ class UserController extends ApiController
         }
         
         // Get authenticated user
-        $user = $this->getAuthenticatedUser();
-        if (!$user) {
+        $userId = $this->getAuthUserId();
+        if (!$userId) {
             return $this->respondError('Unauthorized', 401);
         }
         

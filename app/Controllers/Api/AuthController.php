@@ -3,6 +3,7 @@
 namespace App\Controllers\Api;
 
 use App\Models\UserModel;
+use Firebase\JWT\JWT;
 
 /**
  * API Authentication Controller
@@ -73,7 +74,13 @@ class AuthController extends ApiController
             $userId = $this->userModel->insert($data);
             
             // Generate token
-            $token = $this->userModel->generateApiToken($userId);
+            $key = getenv('JWT_SECRET_KEY') ?: 'your_default_secret_key';
+            $payload = [
+                'id' => $userId,
+                'email' => $data['email'],
+                'exp' => time() + 60 * 60 * 24 // 1 day
+            ];
+            $token = JWT::encode($payload, $key, 'HS256');
             
             // Get user data
             $user = $this->userModel->find($userId);
@@ -151,7 +158,13 @@ class AuthController extends ApiController
             
             try {
                 // Generate token
-                $token = $this->userModel->generateApiToken($user['id']);
+                $key = getenv('JWT_SECRET_KEY') ?: 'your_default_secret_key';
+                $payload = [
+                    'id' => $user['id'],
+                    'email' => $user['email'],
+                    'exp' => time() + 60 * 60 * 24 // 1 day
+                ];
+                $token = JWT::encode($payload, $key, 'HS256');
                 
                 // Update last login
                 $this->userModel->updateLastLogin($user['id']);

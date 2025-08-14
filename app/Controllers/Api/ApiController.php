@@ -3,11 +3,59 @@
 namespace App\Controllers\Api;
 
 use CodeIgniter\RESTful\ResourceController;
+use Exception;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 
 class ApiController extends ResourceController
 {
     protected $format = 'json';
 
+    protected function getAuthHeader()
+    {
+        return $this->request->getHeaderLine('Authorization');
+    }
+    
+    protected function getAuthToken()
+    {
+        $authHeader = $this->request->getHeaderLine('Authorization');
+        if (empty($authHeader) || strpos($authHeader, 'Bearer ') !== 0) {
+            return null;
+        }
+        return trim(substr($authHeader, 7));
+    }
+    
+    protected function getAuthUserId()
+    {
+        try {
+            $token = $this->getAuthToken();
+            if (empty($token)) return null;
+
+            $key = getenv('JWT_SECRET_KEY') ?: 'your_default_secret_key';
+            $decoded = JWT::decode($token, new Key($key, 'HS256'));
+            return $decoded->id ?? null;
+        } catch (\Exception $e) {
+            log_message('error', 'JWT Error: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
+    protected function getAuthUser()
+    {
+        try {
+            $token = $this->getAuthToken();
+            if (empty($token)) return null;
+
+            $key = getenv('JWT_SECRET_KEY') ?: 'your_default_secret_key';
+            $decoded = JWT::decode($token, new Key($key, 'HS256'));
+            $userModel = new \App\Models\UserModel();
+            return $userModel->find($decoded->id ?? 0);
+        } catch (\Exception $e) {
+            log_message('error', 'JWT Error: ' . $e->getMessage());
+            return null;
+        }
+    }
+    
     /**
      * Return success response
      *
@@ -93,35 +141,6 @@ class ApiController extends ResourceController
         return $this->respondError($message, 400, ['errors' => $errors]);
     }
 
-    /**
-     * Get authenticated user from token
-     *
-     * @return array|null
-     */
-    protected function getAuthUser()
-    {
-        $authHeader = $this->request->getHeaderLine('Authorization');
-        
-        if (empty($authHeader) || !preg_match('/Bearer\s+(.*)$/i', $authHeader, $matches)) {
-            return null;
-        }
-        
-        $token = $matches[1];
-        $userModel = new \App\Models\UserModel();
-        return $userModel->where('api_token', $token)->first();
-    }
-
-    /**
-     * Get authenticated user ID from request
-     *
-     * @return int|null
-     */
-    protected function getAuthUserId()
-    {
-        $user = $this->getAuthUser();
-        return $user['id'] ?? null;
-    }
-    
     /**
      * Set CORS headers for API responses
      */

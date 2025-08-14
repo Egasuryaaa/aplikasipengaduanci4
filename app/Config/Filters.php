@@ -36,7 +36,7 @@ class Filters extends BaseFilters
         'performance'   => PerformanceMetrics::class,
         'security'      => \App\Filters\SecurityFilter::class,
         'auth'          => \App\Filters\AuthFilter::class,
-        'api_auth'      => \App\Filters\ApiAuthFilter::class,
+        'apiauth'      => \App\Filters\ApiAuthFilter::class,
         'securitycsrf'  => [\App\Filters\SecurityFilter::class, CSRF::class],
     ];
 

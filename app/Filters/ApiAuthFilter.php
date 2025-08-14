@@ -16,27 +16,31 @@ class ApiAuthFilter implements FilterInterface
     {
         // Get the Authorization header
         $header = $request->getHeaderLine('Authorization');
-        
-        // Check if header exists and has Bearer token
-        if (empty($header) || !preg_match('/Bearer\s(\S+)/', $header, $matches)) {
+        log_message('debug', 'Authorization header: ' . $header);
+        if (empty($header) || !preg_match('/Bearer\\s(\\S+)/', $header, $matches)) {
             return $this->failUnauthorized('No token provided');
         }
-        
+
         $token = $matches[1];
-        
-        // Verify token
-        $userModel = new UserModel();
-        $user = $userModel->where('api_token', $token)->first();
-        
-        if (!$user) {
-            return $this->failUnauthorized('Invalid token');
+
+        // Verify JWT token
+        try {
+            $key = getenv('JWT_SECRET_KEY') ?: 'your_default_secret_key';
+            $decoded = \Firebase\JWT\JWT::decode($token, new \Firebase\JWT\Key($key, 'HS256'));
+        } catch (\Exception $e) {
+            return $this->failUnauthorized('Invalid or expired token');
         }
-        
-        // Check if user is active
+
+        // Find user by id from JWT payload
+        $userModel = new UserModel();
+        $user = $userModel->find((int)($decoded->id ?? 0));
+        if (!$user) {
+            return $this->failUnauthorized('User not found');
+        }
         if (!$user['is_active']) {
             return $this->failUnauthorized('User account is inactive');
         }
-        
+
         // Set user data in request for controllers to access
         $request->user = $user;
     }

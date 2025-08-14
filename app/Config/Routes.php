@@ -88,7 +88,7 @@ $routes->group('api', function ($routes) {
     $routes->get('kategori', 'Api\KategoriController::index');
     
     // Protected API endpoints with simplified auth
-    $routes->group('', function ($routes) {
+    $routes->group('', ['filter' => 'apiauth'], function ($routes) {
         // User routes
         $routes->post('logout', 'Api\AuthController::logout');
         $routes->get('user', 'Api\UserController::index');

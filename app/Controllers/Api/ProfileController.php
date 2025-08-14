@@ -50,7 +50,6 @@ class ProfileController extends ApiController
         
         // Remove sensitive data
         unset($user['password']);
-        unset($user['api_token']);
         
         return $this->respondSuccess(['user' => $user], 'User profile retrieved successfully');
     }
@@ -137,7 +136,6 @@ class ProfileController extends ApiController
         // Get updated user data
         $updatedUser = $this->userModel->find($user['id']);
         unset($updatedUser['password']);
-        unset($updatedUser['api_token']);
         
         return $this->respondSuccess(['user' => $updatedUser], 'Profile updated successfully');
     }
@@ -229,6 +227,6 @@ class ProfileController extends ApiController
         }
         
         $token = $matches[1];
-        return $this->userModel->where('api_token', $token)->first();
+        
     }
 }

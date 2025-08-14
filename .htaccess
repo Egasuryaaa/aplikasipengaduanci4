@@ -63,3 +63,5 @@ ServerSignature Off
         RewriteRule ^api/ - [R=200,L]
     </FilesMatch>
 </IfModule>
+
+SetEnvIf Authorization "(.*)" HTTP_AUTHORIZATION=$1
