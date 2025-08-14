@@ -94,11 +94,6 @@ $routes->group('api', function ($routes) {
         $routes->get('user', 'Api\UserController::index');
         $routes->put('user', 'Api\UserController::update');
         
-        // Profile routes
-        $routes->get('profile', 'Api\ProfileController::index');
-        $routes->put('profile', 'Api\ProfileController::update');
-        $routes->post('profile/change-password', 'Api\ProfileController::changePassword');
-        
         // Pengaduan routes
         $routes->get('pengaduan', 'Api\PengaduanController::index');
         $routes->get('pengaduan/(:num)', 'Api\PengaduanController::show/$1');
@@ -106,6 +101,7 @@ $routes->group('api', function ($routes) {
         $routes->put('pengaduan/(:num)', 'Api\PengaduanController::update/$1');
         $routes->delete('pengaduan/(:num)', 'Api\PengaduanController::delete/$1');
         $routes->post('pengaduan/(:num)/status', 'Api\PengaduanController::addStatus/$1');
+        $routes->get('pengaduan/statistic', 'Api\PengaduanStatistic::index'); // <-- Tambahkan ini
     });
 });
 

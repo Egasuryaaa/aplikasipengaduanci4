@@ -36,7 +36,7 @@ class Cors extends BaseConfig
          */
         'allowedOrigins' => [
             'http://localhost:3000',
-            'http://localhost:57236',
+            'http://localhost:57137',
             'http://localhost',
             'capacitor://',
             'ionic://',
