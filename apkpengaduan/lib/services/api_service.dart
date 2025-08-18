@@ -366,8 +366,17 @@ class ApiService {
 
   Future<bool> deletePengaduan(String id) async {
     await _initializeToken();
-    final response = await _dio.delete('/pengaduan/$id');
-    return response.data['status'] == true;
+    try {
+      final response = await _dio.delete('/pengaduan/$id');
+      return response.data['status'] == true;
+    } on DioException catch (e) {
+      if (e.response?.statusCode == 400) {
+        // Extract error message from the response
+        final message = e.response?.data['message'] ?? 'Bad request';
+        throw Exception(message);
+      }
+      rethrow;
+    }
   }
 
   // Kategori methods

@@ -303,11 +303,12 @@ class _DetailPengaduanScreenState extends State<DetailPengaduanScreen> {
         foregroundColor: Colors.white,
         elevation: 0,
         actions: [
-          IconButton(
-            onPressed: _deletePengaduan,
-            icon: const Icon(Icons.delete),
-            tooltip: 'Hapus Pengaduan',
-          ),
+          if (_pengaduan?.status == 'pending')
+            IconButton(
+              onPressed: _deletePengaduan,
+              icon: const Icon(Icons.delete),
+              tooltip: 'Hapus Pengaduan',
+            ),
         ],
       ),
       body: RefreshIndicator(
@@ -586,30 +587,61 @@ class _DetailPengaduanScreenState extends State<DetailPengaduanScreen> {
 
                     const SizedBox(height: 32),
 
-                    // Delete Button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 52,
-                      child: ElevatedButton.icon(
-                        onPressed: _deletePengaduan,
-                        icon: const Icon(Icons.delete),
-                        label: const Text(
-                          'Hapus Pengaduan',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
+                    // Delete Button - Only show if status is pending
+                    if (_pengaduan?.status == 'pending')
+                      SizedBox(
+                        width: double.infinity,
+                        height: 52,
+                        child: ElevatedButton.icon(
+                          onPressed: _deletePengaduan,
+                          icon: const Icon(Icons.delete),
+                          label: const Text(
+                            'Hapus Pengaduan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
                           ),
-                        ),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Colors.red,
-                          foregroundColor: Colors.white,
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red,
+                            foregroundColor: Colors.white,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
                           ),
-                          elevation: 2,
                         ),
                       ),
-                    ),
+
+                    // Info text when delete is not available
+                    if (_pengaduan?.status != 'pending')
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.orange.shade50,
+                          border: Border.all(color: Colors.orange.shade200),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(
+                              Icons.info_outline,
+                              color: Colors.orange.shade600,
+                            ),
+                            const SizedBox(width: 12),
+                            Expanded(
+                              child: Text(
+                                'Pengaduan dengan status "${_pengaduan?.status}" tidak dapat dihapus',
+                                style: TextStyle(
+                                  color: Colors.orange.shade600,
+                                  fontWeight: FontWeight.w500,
+                                ),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
                   ],
                 ),
               ),
