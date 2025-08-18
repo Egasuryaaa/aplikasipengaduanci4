@@ -92,12 +92,10 @@ class PengaduanController extends ApiController
             $items = $pengaduan;
             foreach ($items as &$item) {
                 if (!empty($item['foto_bukti'])) {
-                    $item['foto_bukti'] = json_decode($item['foto_bukti'], true) ?? [];
-                    // Convert to full URLs
-                    if (is_array($item['foto_bukti'])) {
-                        foreach ($item['foto_bukti'] as &$foto) {
-                            $foto = base_url('uploads/pengaduan/' . $foto);
-                        }
+                    $filenames = json_decode($item['foto_bukti'], true) ?? [];
+                    $item['foto_bukti'] = [];
+                    foreach ($filenames as $filename) {
+                        $item['foto_bukti'][] = base_url('uploads/pengaduan/' . $filename);
                     }
                 } else {
                     $item['foto_bukti'] = [];
@@ -157,14 +155,12 @@ class PengaduanController extends ApiController
             // Get status history
             $history = $this->statusHistoryModel->getHistoryByPengaduan($id);
             
-            // Process foto_bukti
+            // Process foto_bukti - convert filenames to URLs
             if (!empty($pengaduan['foto_bukti'])) {
-                $pengaduan['foto_bukti'] = json_decode($pengaduan['foto_bukti'], true) ?? [];
-                // Convert to full URLs
-                if (is_array($pengaduan['foto_bukti'])) {
-                    foreach ($pengaduan['foto_bukti'] as &$foto) {
-                        $foto = base_url('uploads/pengaduan/' . $foto);
-                    }
+                $filenames = json_decode($pengaduan['foto_bukti'], true) ?? [];
+                $pengaduan['foto_bukti'] = [];
+                foreach ($filenames as $filename) {
+                    $pengaduan['foto_bukti'][] = base_url('uploads/pengaduan/' . $filename);
                 }
             } else {
                 $pengaduan['foto_bukti'] = [];
@@ -231,34 +227,63 @@ class PengaduanController extends ApiController
             $kategoriId = $this->request->getPost('kategori_id');
             $fotoPaths = [];
             
-            // Handle file uploads
-            $uploadPath = WRITEPATH . 'uploads/pengaduan/';
+            // Handle file uploads - use public folder for direct access
+            $uploadPath = FCPATH . 'uploads/pengaduan/';
             if (!is_dir($uploadPath)) {
                 mkdir($uploadPath, 0777, true);
             }
 
-            // Get multiple files
-            $files = $this->request->getFileMultiple('foto_bukti');
+            // Handle file uploads - try both single and multiple file approaches
+            $files = [];
             
-            if ($files && is_array($files)) {
-                foreach ($files as $file) {
+            // First try to get as multiple files (foto_bukti[])
+            $multipleFiles = $this->request->getFileMultiple('foto_bukti');
+            
+            if ($multipleFiles && is_array($multipleFiles)) {
+                $files = $multipleFiles;
+            } else {
+                // Try to get as single file (foto_bukti)
+                $singleFile = $this->request->getFile('foto_bukti');
+                if ($singleFile && $singleFile->isValid()) {
+                    $files = [$singleFile];
+                }
+            }
+            
+            // Debug uploaded files
+            log_message('debug', '[PengaduanController::create] Files received: ' . count($files) . ' files found');
+            log_message('debug', '[PengaduanController::create] POST data: ' . json_encode($this->request->getPost()));
+            log_message('debug', '[PengaduanController::create] FILES array: ' . json_encode($_FILES));
+            
+            if (!empty($files)) {
+                log_message('debug', '[PengaduanController::create] Processing ' . count($files) . ' files');
+                foreach ($files as $index => $file) {
+                    log_message('debug', '[PengaduanController::create] File ' . $index . ': Valid=' . ($file ? $file->isValid() : 'null') . ', Moved=' . ($file ? $file->hasMoved() : 'null'));
+                    
                     if ($file && $file->isValid() && !$file->hasMoved()) {
                         // Check file type
                         $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
-                        if (!in_array(strtolower($file->getExtension()), $allowedTypes)) {
+                        $fileExtension = strtolower($file->getExtension());
+                        log_message('debug', '[PengaduanController::create] File extension: ' . $fileExtension);
+                        
+                        if (!in_array($fileExtension, $allowedTypes)) {
+                            log_message('debug', '[PengaduanController::create] Skipping file - invalid type: ' . $fileExtension);
                             continue; // Skip invalid file types
                         }
                         
                         // Check file size (5MB max)
                         if ($file->getSize() > 5 * 1024 * 1024) {
+                            log_message('debug', '[PengaduanController::create] Skipping file - too large: ' . $file->getSize());
                             continue; // Skip files larger than 5MB
                         }
                         
                         $newName = $file->getRandomName();
                         $file->move($uploadPath, $newName);
-                        $fotoPaths[] = 'uploads/pengaduan/' . $newName;
+                        $fotoPaths[] = $newName; // Store filename only, not full URL
+                        log_message('debug', '[PengaduanController::create] File saved: ' . $newName);
                     }
                 }
+            } else {
+                log_message('debug', '[PengaduanController::create] No files to process');
             }
 
             // Generate nomor pengaduan
@@ -301,6 +326,17 @@ class PengaduanController extends ApiController
 
             // Get the created pengaduan
             $pengaduan = $this->pengaduanModel->find($insertId);
+
+            // Process foto_bukti for response - convert filenames to URLs
+            if (!empty($pengaduan['foto_bukti'])) {
+                $filenames = json_decode($pengaduan['foto_bukti'], true) ?? [];
+                $pengaduan['foto_bukti'] = [];
+                foreach ($filenames as $filename) {
+                    $pengaduan['foto_bukti'][] = base_url('uploads/pengaduan/' . $filename);
+                }
+            } else {
+                $pengaduan['foto_bukti'] = [];
+            }
 
             return $this->respondCreated([
                 'status' => true,

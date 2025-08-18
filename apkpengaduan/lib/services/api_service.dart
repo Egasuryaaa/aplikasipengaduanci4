@@ -217,6 +217,9 @@ class ApiService {
     List fotoBukti,
   ) async {
     print('[ApiService] createPengaduan() called with data: $data');
+    print(
+      '[ApiService] createPengaduan() called with ${fotoBukti.length} files',
+    );
     await _initializeToken();
     print('[ApiService] createPengaduan() - Token initialization complete');
     print(
@@ -226,10 +229,21 @@ class ApiService {
 
     // Tambah file ke form data
     if (fotoBukti.isNotEmpty) {
-      for (var file in fotoBukti) {
+      print(
+        '[ApiService] createPengaduan() - Processing ${fotoBukti.length} files',
+      );
+      for (var i = 0; i < fotoBukti.length; i++) {
+        var file = fotoBukti[i];
+        print(
+          '[ApiService] createPengaduan() - Processing file $i: ${file.runtimeType}',
+        );
+
         if (kIsWeb) {
           // Web: PlatformFile dari file_picker
           var platformFile = file as PlatformFile;
+          print(
+            '[ApiService] createPengaduan() - Web file: ${platformFile.name}, ${platformFile.size} bytes',
+          );
           formData.files.add(
             MapEntry(
               'foto_bukti',
@@ -243,17 +257,26 @@ class ApiService {
               ),
             ),
           );
+          print('[ApiService] createPengaduan() - Added web file to FormData');
         } else {
           // Mobile: XFile dari image_picker
           var xFile = file as XFile;
+          print(
+            '[ApiService] createPengaduan() - Mobile file: ${xFile.name}, path: ${xFile.path}',
+          );
           formData.files.add(
             MapEntry(
               'foto_bukti',
               await MultipartFile.fromFile(xFile.path, filename: xFile.name),
             ),
           );
+          print(
+            '[ApiService] createPengaduan() - Added mobile file to FormData',
+          );
         }
       }
+    } else {
+      print('[ApiService] createPengaduan() - No files to upload');
     }
 
     final response = await _dio.post('/pengaduan', data: formData);

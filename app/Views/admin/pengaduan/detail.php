@@ -235,14 +235,33 @@ Detail Pengaduan - <?= $pengaduan['nomor_pengaduan'] ?>
                 </div>
             </div>
 
-            <?php if (!empty($pengaduan['foto_bukti'])): ?>
+            <?php 
+            // Parse foto_bukti as JSON array
+            $fotoBukti = [];
+            if (!empty($pengaduan['foto_bukti'])) {
+                if (is_string($pengaduan['foto_bukti'])) {
+                    $fotoBukti = json_decode($pengaduan['foto_bukti'], true) ?? [];
+                } elseif (is_array($pengaduan['foto_bukti'])) {
+                    $fotoBukti = $pengaduan['foto_bukti'];
+                }
+            }
+            ?>
+            <?php if (!empty($fotoBukti)): ?>
             <div class="row mt-2">
                 <div class="col-12">
-                    <h6 class="font-weight-bold">Foto Bukti:</h6>
+                    <h6 class="font-weight-bold">Foto Bukti (<?= count($fotoBukti) ?> foto):</h6>
                     <div class="foto-bukti-container">
-                        <img src="<?= base_url('uploads/pengaduan/' . $pengaduan['foto_bukti']) ?>" 
-                             class="foto-bukti-item" onclick="showImage('<?= base_url('uploads/pengaduan/' . $pengaduan['foto_bukti']) ?>')" 
-                             alt="Foto Bukti">
+                        <?php foreach ($fotoBukti as $foto): ?>
+                            <?php 
+                            // Handle both filename and full URL
+                            $fotoUrl = (strpos($foto, 'http') === 0) ? $foto : base_url('uploads/pengaduan/' . $foto);
+                            ?>
+                            <img src="<?= $fotoUrl ?>" 
+                                 class="foto-bukti-item" 
+                                 onclick="showImage('<?= $fotoUrl ?>')" 
+                                 alt="Foto Bukti" 
+                                 loading="lazy">
+                        <?php endforeach; ?>
                     </div>
                 </div>
             </div>

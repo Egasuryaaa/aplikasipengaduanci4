@@ -118,10 +118,23 @@
                                         </div>
                                     </td>
                                     <td class="text-center">
-                                        <?php if (!empty($item['foto_bukti'])): ?>
+                                        <?php 
+                                        // Parse foto_bukti as JSON array
+                                        $fotoBukti = [];
+                                        if (!empty($item['foto_bukti'])) {
+                                            if (is_string($item['foto_bukti'])) {
+                                                $fotoBukti = json_decode($item['foto_bukti'], true) ?? [];
+                                            } elseif (is_array($item['foto_bukti'])) {
+                                                $fotoBukti = $item['foto_bukti'];
+                                            }
+                                        }
+                                        ?>
+                                        <?php if (!empty($fotoBukti)): ?>
                                             <button type="button" class="btn btn-sm btn-outline-primary" 
-                                                    onclick="showImage('<?= base_url('uploads/pengaduan/' . $item['foto_bukti']) ?>')">
-                                                <i class="fas fa-image"></i>
+                                                    onclick="showMultipleImages(<?= htmlspecialchars(json_encode(array_map(function($foto) {
+                                                        return (strpos($foto, 'http') === 0) ? $foto : base_url('uploads/pengaduan/' . $foto);
+                                                    }, $fotoBukti))) ?>)">
+                                                <i class="fas fa-image"></i> <?= count($fotoBukti) ?>
                                             </button>
                                         <?php else: ?>
                                             <span class="text-muted small">Tidak ada</span>
@@ -284,6 +297,41 @@
         document.getElementById('modalImage').src = imageUrl;
         const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
         imageModal.show();
+    }
+
+    // Show multiple images function
+    function showMultipleImages(imageUrls) {
+        if (imageUrls.length === 1) {
+            showImage(imageUrls[0]);
+        } else if (imageUrls.length > 1) {
+            // Create a carousel or gallery for multiple images
+            let carousel = '<div id="imageCarousel" class="carousel slide" data-bs-ride="carousel">';
+            carousel += '<div class="carousel-inner">';
+            
+            imageUrls.forEach((url, index) => {
+                carousel += `<div class="carousel-item ${index === 0 ? 'active' : ''}">`;
+                carousel += `<img src="${url}" class="d-block w-100" style="max-height: 500px; object-fit: contain;">`;
+                carousel += '</div>';
+            });
+            
+            carousel += '</div>';
+            
+            if (imageUrls.length > 1) {
+                carousel += '<button class="carousel-control-prev" type="button" data-bs-target="#imageCarousel" data-bs-slide="prev">';
+                carousel += '<span class="carousel-control-prev-icon"></span>';
+                carousel += '</button>';
+                carousel += '<button class="carousel-control-next" type="button" data-bs-target="#imageCarousel" data-bs-slide="next">';
+                carousel += '<span class="carousel-control-next-icon"></span>';
+                carousel += '</button>';
+            }
+            
+            carousel += '</div>';
+            
+            // Replace modal content
+            document.querySelector('#imageModal .modal-body').innerHTML = carousel;
+            const imageModal = new bootstrap.Modal(document.getElementById('imageModal'));
+            imageModal.show();
+        }
     }
 
     // Update status function

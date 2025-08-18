@@ -17,6 +17,15 @@ class PhotoGalleryWidget extends StatefulWidget {
 class _PhotoGalleryWidgetState extends State<PhotoGalleryWidget> {
   int _selectedIndex = 0;
 
+  String _getPhotoUrl(String photo) {
+    // If photo already contains full URL, return as is
+    if (photo.startsWith('http')) {
+      return photo;
+    }
+    // Otherwise construct URL
+    return '${widget.baseUrl}/$photo';
+  }
+
   @override
   Widget build(BuildContext context) {
     if (widget.photos.isEmpty) {
@@ -62,7 +71,7 @@ class _PhotoGalleryWidgetState extends State<PhotoGalleryWidget> {
             child: ClipRRect(
               borderRadius: BorderRadius.circular(12),
               child: Image.network(
-                '${widget.baseUrl}/${widget.photos[_selectedIndex]}',
+                _getPhotoUrl(widget.photos[_selectedIndex]),
                 fit: BoxFit.cover,
                 errorBuilder: (context, error, stackTrace) {
                   return Container(
@@ -139,7 +148,7 @@ class _PhotoGalleryWidgetState extends State<PhotoGalleryWidget> {
                     child: ClipRRect(
                       borderRadius: BorderRadius.circular(7),
                       child: Image.network(
-                        '${widget.baseUrl}/${widget.photos[index]}',
+                        _getPhotoUrl(widget.photos[index]),
                         fit: BoxFit.cover,
                         errorBuilder: (context, error, stackTrace) {
                           return Container(
@@ -182,7 +191,7 @@ class _PhotoGalleryWidgetState extends State<PhotoGalleryWidget> {
                   minScale: 0.5,
                   maxScale: 4,
                   child: Image.network(
-                    '${widget.baseUrl}/${widget.photos[_selectedIndex]}',
+                    _getPhotoUrl(widget.photos[_selectedIndex]),
                     fit: BoxFit.contain,
                     errorBuilder: (context, error, stackTrace) {
                       return Column(

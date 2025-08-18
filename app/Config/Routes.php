@@ -105,5 +105,9 @@ $routes->group('api', ['filter' => 'cors'], function ($routes) {
     });
 });
 
+// File access routes - testing
+$routes->get('test-file', 'Files::pengaduan/1755527094_f89ec96ed7502cdeb3cb.png');
+$routes->get('files/pengaduan/(:segment)', 'Files::pengaduan/$1');
+
 // CSP Violation Report
 $routes->post('csp-violation-report', 'SecurityController::cspViolationReport');
