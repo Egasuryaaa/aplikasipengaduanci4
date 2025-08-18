@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
+import '../widgets/auth_widgets.dart';
+import 'profile/profile.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -49,17 +51,20 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _onItemTapped(int index) {
-    setState(() {
-      _selectedIndex = index;
-    });
-    // Navigasi sesuai index
-    if (index == 0) {
-      // Home
-    } else if (index == 1) {
-      Navigator.of(context).pushReplacementNamed('/pengaduan');
-    } else if (index == 2) {
-      Navigator.of(context).pushReplacementNamed('/profile');
+  void _goToProfile(BuildContext context) async {
+    final api = ApiService();
+    final response = await api.getUserDetail();
+    if (response['status'] == true && response['data'] != null) {
+      final user = response['data']['user'];
+      Navigator.of(context).push(
+        MaterialPageRoute(builder: (context) => ProfileScreen(user: user)),
+      );
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text(response['message'] ?? 'Gagal mengambil data user'),
+        ),
+      );
     }
   }
 
@@ -72,6 +77,7 @@ class _HomeScreenState extends State<HomeScreen> {
         backgroundColor: Colors.blue.shade600,
         foregroundColor: Colors.white,
       ),
+      drawer: const AuthDrawer(),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -234,7 +240,17 @@ class _HomeScreenState extends State<HomeScreen> {
           BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
         ],
         currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
+        onTap: (index) {
+          if (index == 2) {
+            _goToProfile(context);
+          } else if (index == 1) {
+            Navigator.pushNamed(context, '/pengaduan');
+          } else {
+            setState(() {
+              _selectedIndex = index;
+            });
+          }
+        },
         type: BottomNavigationBarType.fixed,
       ),
     );

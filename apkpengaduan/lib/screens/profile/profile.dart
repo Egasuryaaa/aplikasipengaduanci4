@@ -101,6 +101,16 @@ class ProfileScreen extends StatelessWidget {
                       statusColor:
                           user['is_active'] == 't' ? Colors.green : Colors.red,
                     ),
+                    _buildInfoTile(
+                      Icons.calendar_today,
+                      'Dibuat',
+                      user['created_at'] ?? '-',
+                    ),
+                    _buildInfoTile(
+                      Icons.update,
+                      'Terakhir Update',
+                      user['updated_at'] ?? '-',
+                    ),
                   ],
                 ),
               ),

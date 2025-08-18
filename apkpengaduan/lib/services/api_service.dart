@@ -1,13 +1,25 @@
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:file_picker/file_picker.dart';
+import 'package:http_parser/http_parser.dart';
 import '../models/pengaduan.dart';
 import '../models/kategori.dart';
+import 'package:image_picker/image_picker.dart';
 
 class ApiService {
   static const String baseUrl = 'http://localhost/serverpengaduan/api';
   final Dio _dio = Dio();
 
-  ApiService() {
+  // Singleton pattern
+  static final ApiService _instance = ApiService._internal();
+  factory ApiService() {
+    print('[ApiService] Singleton instance requested - reusing same instance');
+    return _instance;
+  }
+
+  ApiService._internal() {
+    print('[ApiService] Creating new singleton instance');
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 15);
     _dio.options.receiveTimeout = const Duration(seconds: 15);
@@ -15,14 +27,55 @@ class ApiService {
       'Content-Type': 'application/json',
       'Accept': 'application/json',
     };
+
+    // Add interceptor for debugging and error handling
+    _dio.interceptors.add(
+      InterceptorsWrapper(
+        onRequest: (options, handler) {
+          print('[ApiService] ${options.method} ${options.uri}');
+          print('[ApiService] Headers: ${options.headers}');
+          handler.next(options);
+        },
+        onResponse: (response, handler) {
+          print('[ApiService] Response: ${response.statusCode}');
+          handler.next(response);
+        },
+        onError: (DioException e, handler) {
+          print('[ApiService] Error: ${e.message}');
+          print('[ApiService] Response: ${e.response?.data}');
+          if (e.response?.statusCode == 401) {
+            print(
+              '[ApiService] Unauthorized - Token may be invalid or expired',
+            );
+          }
+          handler.next(e);
+        },
+      ),
+    );
+
     _initializeToken();
   }
 
   Future<void> _initializeToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    final token = prefs.getString('auth_token');
-    if (token != null) {
-      _dio.options.headers['Authorization'] = 'Bearer $token';
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('auth_token');
+      print('[ApiService] _initializeToken - Checking for stored token...');
+      print('[ApiService] Token found in storage: ${token != null}');
+      if (token != null && token.isNotEmpty) {
+        _dio.options.headers['Authorization'] = 'Bearer $token';
+        print('[ApiService] Token successfully set in headers');
+        print(
+          '[ApiService] Current Authorization header: ${_dio.options.headers['Authorization']}',
+        );
+      } else {
+        print(
+          '[ApiService] WARNING: No token found in storage - user may need to login',
+        );
+        _dio.options.headers.remove('Authorization');
+      }
+    } catch (e) {
+      print('[ApiService] ERROR initializing token: $e');
     }
   }
 
@@ -55,11 +108,33 @@ class ApiService {
     return response.data;
   }
 
-  void setToken(String token) async {
+  Future<void> setToken(String token) async {
+    // Set header immediately
     _dio.options.headers['Authorization'] = 'Bearer $token';
-    // Simpan token ke SharedPreferences
+    // Save token to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
+    print('[ApiService] setToken() saved token and set Authorization header');
+  }
+
+  Future<void> clearToken() async {
+    // Remove authorization header
+    _dio.options.headers.remove('Authorization');
+    // Remove token from SharedPreferences
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('auth_token');
+    print('[ApiService] clearToken() removed token and Authorization header');
+  }
+
+  // Method untuk validasi token
+  Future<bool> validateToken() async {
+    try {
+      final response = await _dio.get('/user');
+      return response.statusCode == 200;
+    } catch (e) {
+      print('[ApiService] Token validation failed: $e');
+      return false;
+    }
   }
 
   Future<Map<String, dynamic>> getJumlahPengaduan() async {
@@ -67,6 +142,26 @@ class ApiService {
     final response = await _dio.get(
       '/pengaduan/jumlah',
     ); // Pastikan endpoint sesuai
+    return response.data;
+  }
+
+  // CRUD Pengaduan - Updated methods
+  Future<Map<String, dynamic>> getPengaduanListWithMeta({
+    int page = 1,
+    String? search,
+    String? status,
+    String? dateFrom,
+    String? dateTo,
+  }) async {
+    await _initializeToken();
+
+    Map<String, dynamic> queryParams = {'page': page};
+    if (search != null) queryParams['search'] = search;
+    if (status != null) queryParams['status'] = status;
+    if (dateFrom != null) queryParams['date_from'] = dateFrom;
+    if (dateTo != null) queryParams['date_to'] = dateTo;
+
+    final response = await _dio.get('/pengaduan', queryParameters: queryParams);
     return response.data;
   }
 
@@ -80,7 +175,14 @@ class ApiService {
     return [];
   }
 
+  Future<Map<String, dynamic>> getPengaduanDetailRaw(String id) async {
+    await _initializeToken();
+    final response = await _dio.get('/pengaduan/$id');
+    return response.data;
+  }
+
   Future<Pengaduan?> getPengaduanDetail(String id) async {
+    await _initializeToken();
     final response = await _dio.get('/pengaduan/$id');
     if (response.data['status'] == true) {
       return Pengaduan.fromJson(response.data['data']['pengaduan']);
@@ -88,23 +190,166 @@ class ApiService {
     return null;
   }
 
-  Future<bool> createPengaduan(Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createPengaduanNew({
+    required String instansiId,
+    required String kategoriId,
+    required String deskripsi,
+    List<String>? fotoBukti,
+  }) async {
+    await _initializeToken();
+
+    final data = <String, dynamic>{
+      'instansi_id': instansiId,
+      'kategori_id': kategoriId,
+      'deskripsi': deskripsi,
+    };
+
+    if (fotoBukti != null && fotoBukti.isNotEmpty) {
+      data['foto_bukti'] = fotoBukti;
+    }
+
     final response = await _dio.post('/pengaduan', data: data);
-    return response.data['status'] == true;
+    return response.data;
   }
 
-  Future<bool> updatePengaduan(String id, Map<String, dynamic> data) async {
+  Future<Map<String, dynamic>> createPengaduan(
+    Map<String, dynamic> data,
+    List fotoBukti,
+  ) async {
+    print('[ApiService] createPengaduan() called with data: $data');
+    await _initializeToken();
+    print('[ApiService] createPengaduan() - Token initialization complete');
+    print(
+      '[ApiService] createPengaduan() - Current headers: ${_dio.options.headers}',
+    );
+    FormData formData = FormData.fromMap(data);
+
+    // Tambah file ke form data
+    if (fotoBukti.isNotEmpty) {
+      for (var file in fotoBukti) {
+        if (kIsWeb) {
+          // Web: PlatformFile dari file_picker
+          var platformFile = file as PlatformFile;
+          formData.files.add(
+            MapEntry(
+              'foto_bukti',
+              MultipartFile.fromBytes(
+                platformFile.bytes!,
+                filename: platformFile.name,
+                contentType: MediaType(
+                  'image',
+                  platformFile.extension == 'png' ? 'png' : 'jpeg',
+                ),
+              ),
+            ),
+          );
+        } else {
+          // Mobile: XFile dari image_picker
+          var xFile = file as XFile;
+          formData.files.add(
+            MapEntry(
+              'foto_bukti',
+              await MultipartFile.fromFile(xFile.path, filename: xFile.name),
+            ),
+          );
+        }
+      }
+    }
+
+    final response = await _dio.post('/pengaduan', data: formData);
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> updatePengaduanNew({
+    required String id,
+    required String instansiId,
+    required String kategoriId,
+    required String deskripsi,
+    List<String>? fotoBukti,
+  }) async {
+    await _initializeToken();
+
+    final data = <String, dynamic>{
+      'instansi_id': instansiId,
+      'kategori_id': kategoriId,
+      'deskripsi': deskripsi,
+    };
+
+    if (fotoBukti != null) {
+      data['foto_bukti'] = fotoBukti;
+    }
+
     final response = await _dio.put('/pengaduan/$id', data: data);
-    return response.data['status'] == true;
+    return response.data;
+  }
+
+  Future<bool> updatePengaduan(
+    String id,
+    Map<String, dynamic> data, [
+    List? fotoBukti,
+  ]) async {
+    await _initializeToken();
+
+    if (fotoBukti == null || fotoBukti.isEmpty) {
+      final response = await _dio.put('/pengaduan/$id', data: data);
+      return response.data['status'] == true;
+    } else {
+      FormData formData = FormData.fromMap(data);
+
+      // Handle foto bukti di web dan mobile
+      for (var i = 0; i < fotoBukti.length; i++) {
+        final file = fotoBukti[i];
+
+        if (kIsWeb) {
+          // Web: PlatformFile dari file_picker
+          if (file is PlatformFile && file.bytes != null) {
+            formData.files.add(
+              MapEntry(
+                'foto_bukti',
+                MultipartFile.fromBytes(
+                  file.bytes!,
+                  filename: file.name,
+                  contentType: MediaType(
+                    'image',
+                    file.extension == 'png' ? 'png' : 'jpeg',
+                  ),
+                ),
+              ),
+            );
+          }
+        } else {
+          // Mobile: XFile dari image_picker
+          if (file is XFile) {
+            formData.files.add(
+              MapEntry(
+                'foto_bukti',
+                await MultipartFile.fromFile(file.path, filename: file.name),
+              ),
+            );
+          }
+        }
+      }
+
+      final response = await _dio.put('/pengaduan/$id', data: formData);
+      return response.data['status'] == true;
+    }
+  }
+
+  Future<Map<String, dynamic>> deletePengaduanNew(String id) async {
+    await _initializeToken();
+    final response = await _dio.delete('/pengaduan/$id');
+    return response.data;
   }
 
   Future<bool> deletePengaduan(String id) async {
+    await _initializeToken();
     final response = await _dio.delete('/pengaduan/$id');
     return response.data['status'] == true;
   }
 
   // Kategori methods
   Future<List<Kategori>> getKategoriList() async {
+    await _initializeToken();
     final response = await _dio.get('/kategori');
     if (response.data['status'] == true) {
       final items = response.data['data']['kategori'] as List;
@@ -117,6 +362,12 @@ class ApiService {
     // Pastikan token tersedia sebelum request
     await _initializeToken();
     final response = await _dio.get('/pengaduan/statistic');
+    return response.data;
+  }
+
+  Future<Map<String, dynamic>> getUserDetail() async {
+    await _initializeToken();
+    final response = await _dio.get('/user');
     return response.data;
   }
 }

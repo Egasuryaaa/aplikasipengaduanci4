@@ -36,11 +36,11 @@ class PengaduanModel extends Model
     protected $skipValidation     = false;
     protected $cleanValidationRules = true;
 
-    // Callbacks
-    protected $allowCallbacks = true;
-    protected $beforeInsert   = ['generateUuid', 'generateNomorPengaduan'];
-    protected $afterInsert    = ['createStatusHistory'];
-    protected $afterUpdate    = ['updateStatusHistory'];
+    // Callbacks - disabled temporarily to avoid issues
+    protected $allowCallbacks = false;
+    // protected $beforeInsert   = ['generateUuid', 'generateNomorPengaduan'];
+    // protected $afterInsert    = ['createStatusHistory'];
+    // protected $afterUpdate    = ['updateStatusHistory'];
 
     protected function generateUuid(array $data)
     {

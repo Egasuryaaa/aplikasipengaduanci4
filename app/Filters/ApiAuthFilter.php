@@ -14,9 +14,22 @@ class ApiAuthFilter implements FilterInterface
      */
     public function before(RequestInterface $request, $arguments = null)
     {
+        // Handle OPTIONS preflight requests - allow without authentication
+        if ($request->getMethod() === 'options') {
+            $response = service('response');
+            $response->setHeader('Access-Control-Allow-Origin', '*');
+            $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+            $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+            $response->setHeader('Access-Control-Allow-Credentials', 'false');
+            $response->setHeader('Access-Control-Max-Age', '3600');
+            return $response->setStatusCode(200);
+        }
+
         // Get the Authorization header
         $header = $request->getHeaderLine('Authorization');
-        log_message('debug', 'Authorization header: ' . $header);
+        // Mask token value in logs to avoid leaking sensitive data
+        $maskedHeader = preg_replace('/(Bearer\s+)\S+/i', '$1[REDACTED]', $header);
+        log_message('debug', 'Authorization header: ' . $maskedHeader);
         if (empty($header) || !preg_match('/Bearer\\s(\\S+)/', $header, $matches)) {
             return $this->failUnauthorized('No token provided');
         }
@@ -41,8 +54,16 @@ class ApiAuthFilter implements FilterInterface
             return $this->failUnauthorized('User account is inactive');
         }
 
-        // Set user data in request for controllers to access
-        $request->user = $user;
+    // Set user data for downstream use.
+    // Note: CodeIgniter\HTTP\IncomingRequest does not support setAttribute();
+    // avoid attaching arbitrary data to the request. Use session or
+    // have controllers decode JWT again via ApiController::getAuthUser().
+
+    // Jika ingin menyimpan user di session:
+        session()->set('user', $user);
+
+    // Atau jika ingin meneruskan data ke controller, gunakan session (di atas)
+    // atau panggil ApiController::getAuthUser() di controller.
     }
     
     /**
@@ -58,7 +79,16 @@ class ApiAuthFilter implements FilterInterface
      */
     protected function failUnauthorized(string $message = 'Unauthorized')
     {
-        return service('response')
+        $response = service('response');
+        
+        // Set CORS headers
+        $response->setHeader('Access-Control-Allow-Origin', '*');
+        $response->setHeader('Access-Control-Allow-Headers', 'Origin, X-Requested-With, Content-Type, Accept, Authorization');
+        $response->setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+        $response->setHeader('Access-Control-Allow-Credentials', 'false');
+        $response->setHeader('Access-Control-Max-Age', '3600');
+        
+        return $response
             ->setStatusCode(401)
             ->setJSON([
                 'status' => false,

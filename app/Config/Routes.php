@@ -71,8 +71,8 @@ $routes->group('admin', function($routes) {
 });
 
 // Mobile API Routes (Token-based Authentication)
-// API Routes (no filters to prevent CORS issues)
-$routes->group('api', function ($routes) {
+// API Routes (with CORS support)
+$routes->group('api', ['filter' => 'cors'], function ($routes) {
     // Handle OPTIONS requests for CORS preflight - match all possible endpoints
     $routes->options('(:any)', 'Api\ApiController::options');
     $routes->options('(:any)/(:num)', 'Api\ApiController::options');

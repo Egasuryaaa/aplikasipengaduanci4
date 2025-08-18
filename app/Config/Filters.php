@@ -30,7 +30,7 @@ class Filters extends BaseFilters
         'honeypot'      => Honeypot::class,
         'invalidchars'  => InvalidChars::class,
         'secureheaders' => SecureHeaders::class,
-        // 'cors'          => Cors::class, // Disabled to fix CORS issues
+        'cors'          => \App\Filters\CorsFilter::class, // Re-enabled with proper implementation
         'forcehttps'    => ForceHTTPS::class,
         'pagecache'     => PageCache::class,
         'performance'   => PerformanceMetrics::class,

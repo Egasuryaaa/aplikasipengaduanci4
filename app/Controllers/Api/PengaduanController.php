@@ -192,112 +192,127 @@ class PengaduanController extends ApiController
      */
     public function create()
     {
-        // Set CORS headers
+        // Set headers explicitly for CORS and content type
         $this->setCorsHeaders();
+        $this->response->setHeader('Content-Type', 'application/json');
         
         // Handle OPTIONS preflight requests
         if ($this->request->getMethod() === 'options') {
             return $this->response->setStatusCode(200);
         }
         
+        // Validation rules
         $rules = [
-            'judul' => 'required|min_length[3]|max_length[255]',
-            'isi' => 'required|min_length[10]|max_length[2000]',
+            'deskripsi' => 'required|min_length[10]|max_length[2000]',
             'kategori_id' => 'required|integer|is_not_unique[kategori_pengaduan.id]',
-            'lokasi' => 'permit_empty|max_length[255]',
-            'foto' => 'permit_empty|uploaded[foto]|is_image[foto]|max_size[foto,5120]', // 5MB max
         ];
-
+        
         if (!$this->validate($rules)) {
             return $this->respondValidationError($this->validator->getErrors());
         }
-
+        
         try {
             $userId = $this->getAuthUserId();
             
             // Check if user is authenticated
             if (!$userId) {
-                return $this->respondError('Unauthorized', 401);
+                return $this->respondError('Unauthorized - Please login first', 401);
             }
             
+            // Get user details for instansi_id
+            $userModel = new \App\Models\UserModel();
+            $user = $userModel->find($userId);
+            
+            if (!$user) {
+                return $this->respondError('User not found', 404);
+            }
+            
+            $deskripsi = $this->request->getPost('deskripsi');
             $kategoriId = $this->request->getPost('kategori_id');
+            $fotoPaths = [];
             
-            // Get the user's instansi_id
-            $user = $this->getAuthUser();
-            $instansiId = $user['instansi_id'] ?? 1; // Default to 1 if not set
-            
-            // Prepare data for pengaduan
-            $data = [
-                'user_id' => $userId,
-                'instansi_id' => $instansiId,
-                'kategori_id' => $kategoriId,
-                'deskripsi' => $this->request->getPost('isi'),
-                'status' => 'pending',
-            ];
-            
-            // Create directory if it doesn't exist
+            // Handle file uploads
             $uploadPath = WRITEPATH . 'uploads/pengaduan/';
             if (!is_dir($uploadPath)) {
                 mkdir($uploadPath, 0777, true);
             }
+
+            // Get multiple files
+            $files = $this->request->getFileMultiple('foto_bukti');
             
-            // Handle file upload
-            $files = $this->request->getFiles();
-            $fotoBukti = [];
-            
-            if (isset($files['foto'])) {
-                $fotoFiles = $files['foto'];
-                
-                // Handle multiple files
-                if (is_array($fotoFiles)) {
-                    foreach ($fotoFiles as $foto) {
-                        if ($foto->isValid() && !$foto->hasMoved()) {
-                            $newName = $foto->getRandomName();
-                            $foto->move($uploadPath, $newName);
-                            $fotoBukti[] = $newName;
+            if ($files && is_array($files)) {
+                foreach ($files as $file) {
+                    if ($file && $file->isValid() && !$file->hasMoved()) {
+                        // Check file type
+                        $allowedTypes = ['jpg', 'jpeg', 'png', 'gif'];
+                        if (!in_array(strtolower($file->getExtension()), $allowedTypes)) {
+                            continue; // Skip invalid file types
                         }
-                    }
-                } else {
-                    // Handle single file
-                    if ($fotoFiles->isValid() && !$fotoFiles->hasMoved()) {
-                        $newName = $fotoFiles->getRandomName();
-                        $fotoFiles->move($uploadPath, $newName);
-                        $fotoBukti[] = $newName;
+                        
+                        // Check file size (5MB max)
+                        if ($file->getSize() > 5 * 1024 * 1024) {
+                            continue; // Skip files larger than 5MB
+                        }
+                        
+                        $newName = $file->getRandomName();
+                        $file->move($uploadPath, $newName);
+                        $fotoPaths[] = 'uploads/pengaduan/' . $newName;
                     }
                 }
             }
-            
-            if (!empty($fotoBukti)) {
-                $data['foto_bukti'] = json_encode($fotoBukti);
-            }
-            
+
+            // Generate nomor pengaduan
+            $currentYear = date('Y');
+            $currentMonth = date('m');
+            $count = $this->pengaduanModel->where('EXTRACT(YEAR FROM created_at)', $currentYear)
+                                         ->where('EXTRACT(MONTH FROM created_at)', $currentMonth)
+                                         ->countAllResults();
+            $nomorPengaduan = 'ADU' . $currentYear . $currentMonth . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+
+            // Generate UUID manually
+            $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff),
+                mt_rand(0, 0xffff),
+                mt_rand(0, 0x0fff) | 0x4000,
+                mt_rand(0, 0x3fff) | 0x8000,
+                mt_rand(0, 0xffff), mt_rand(0, 0xffff), mt_rand(0, 0xffff)
+            );
+
+            // Prepare data for insertion
+            $data = [
+                'uuid' => $uuid,
+                'nomor_pengaduan' => $nomorPengaduan,
+                'user_id' => $userId,
+                'instansi_id' => $user['instansi_id'],
+                'kategori_id' => $kategoriId,
+                'deskripsi' => $deskripsi,
+                'foto_bukti' => json_encode($fotoPaths),
+                'status' => 'pending',
+                'created_at' => date('Y-m-d H:i:s'),
+                'updated_at' => date('Y-m-d H:i:s'),
+            ];
+
             // Insert pengaduan
-            $pengaduanId = $this->pengaduanModel->insert($data);
+            $insertId = $this->pengaduanModel->insert($data);
             
-            // Get the created pengaduan
-            $pengaduan = $this->pengaduanModel->getPengaduanWithRelations($pengaduanId);
-            
-            // Process foto_bukti for response
-            if (!empty($pengaduan['foto_bukti'])) {
-                $pengaduan['foto_bukti'] = json_decode($pengaduan['foto_bukti'], true) ?? [];
-                // Convert to full URLs
-                if (is_array($pengaduan['foto_bukti'])) {
-                    foreach ($pengaduan['foto_bukti'] as &$foto) {
-                        $foto = base_url('uploads/pengaduan/' . $foto);
-                    }
-                }
-            } else {
-                $pengaduan['foto_bukti'] = [];
+            if (!$insertId) {
+                return $this->respondError('Gagal menyimpan pengaduan', 500);
             }
-            
-            // Return response
-            return $this->respondSuccess([
-                'pengaduan' => $pengaduan
-            ], 'Pengaduan berhasil dibuat', 201);
+
+            // Get the created pengaduan
+            $pengaduan = $this->pengaduanModel->find($insertId);
+
+            return $this->respondCreated([
+                'status' => true,
+                'message' => 'Pengaduan berhasil dibuat',
+                'data' => [
+                    'pengaduan' => $pengaduan
+                ]
+            ]);
             
         } catch (\Exception $e) {
-            log_message('error', 'Create pengaduan error: ' . $e->getMessage());
-            return $this->respondError('Failed to create pengaduan: ' . $e->getMessage());
+            log_message('error', '[PengaduanController::create] Error: ' . $e->getMessage());
+            return $this->respondError('Terjadi kesalahan server: ' . $e->getMessage(), 500);
         }
     }
 

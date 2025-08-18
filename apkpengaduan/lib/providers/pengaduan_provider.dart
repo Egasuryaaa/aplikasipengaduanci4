@@ -35,13 +35,17 @@ class PengaduanProvider extends ChangeNotifier {
     notifyListeners();
   }
 
-  Future<bool> createPengaduan(Map<String, dynamic> data) async {
+  Future<bool> createPengaduan(
+    Map<String, dynamic> data,
+    List fotoBukti,
+  ) async {
     isLoading = true;
     notifyListeners();
     try {
-      final result = await _apiService.createPengaduan(data);
+      final result = await _apiService.createPengaduan(data, fotoBukti);
       await fetchPengaduanList();
-      return result;
+      error = null;
+      return result['status'] == true;
     } catch (e) {
       error = e.toString();
       return false;
@@ -51,12 +55,17 @@ class PengaduanProvider extends ChangeNotifier {
     }
   }
 
-  Future<bool> updatePengaduan(String id, Map<String, dynamic> data) async {
+  Future<bool> updatePengaduan(
+    String id,
+    Map<String, dynamic> data, [
+    List? fotoBukti,
+  ]) async {
     isLoading = true;
     notifyListeners();
     try {
-      final result = await _apiService.updatePengaduan(id, data);
+      final result = await _apiService.updatePengaduan(id, data, fotoBukti);
       await fetchPengaduanList();
+      error = null;
       return result;
     } catch (e) {
       error = e.toString();
