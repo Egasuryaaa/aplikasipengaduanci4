@@ -286,13 +286,49 @@ class PengaduanController extends ApiController
                 log_message('debug', '[PengaduanController::create] No files to process');
             }
 
-            // Generate nomor pengaduan
+            // Generate nomor pengaduan with proper uniqueness check
             $currentYear = date('Y');
             $currentMonth = date('m');
-            $count = $this->pengaduanModel->where('EXTRACT(YEAR FROM created_at)', $currentYear)
-                                         ->where('EXTRACT(MONTH FROM created_at)', $currentMonth)
-                                         ->countAllResults();
-            $nomorPengaduan = 'ADU' . $currentYear . $currentMonth . str_pad($count + 1, 4, '0', STR_PAD_LEFT);
+            
+            $db = \Config\Database::connect();
+            $db->transStart();
+            
+            // Find the highest existing number for this month
+            $query = "SELECT nomor_pengaduan FROM pengaduan 
+                     WHERE nomor_pengaduan LIKE ? 
+                     ORDER BY nomor_pengaduan DESC LIMIT 1";
+            $prefix = 'ADU' . $currentYear . $currentMonth;
+            $result = $db->query($query, [$prefix . '%']);
+            
+            $nextNumber = 1;
+            if ($result->getNumRows() > 0) {
+                $lastNomor = $result->getRow()->nomor_pengaduan;
+                // Extract the last 4 digits and increment
+                $lastNumber = intval(substr($lastNomor, -4));
+                $nextNumber = $lastNumber + 1;
+            }
+            
+            // Generate unique nomor pengaduan with retry logic
+            $attempts = 0;
+            $maxAttempts = 10;
+            do {
+                $nomorPengaduan = $prefix . str_pad($nextNumber, 4, '0', STR_PAD_LEFT);
+                $exists = $this->pengaduanModel->where('nomor_pengaduan', $nomorPengaduan)->countAllResults() > 0;
+                log_message('debug', "[PengaduanController::create] Checking nomor: $nomorPengaduan, exists: " . ($exists ? 'yes' : 'no'));
+                if ($exists) {
+                    $nextNumber++;
+                    $attempts++;
+                } else {
+                    break;
+                }
+            } while ($attempts < $maxAttempts);
+            
+            log_message('debug', "[PengaduanController::create] Generated nomor: $nomorPengaduan after $attempts attempts");
+            
+            if ($attempts >= $maxAttempts) {
+                $db->transRollback();
+                return $this->respondError('Gagal menggenerate nomor pengaduan unik', 500);
+            }
 
             // Generate UUID manually
             $uuid = sprintf('%04x%04x-%04x-%04x-%04x-%04x%04x%04x',
@@ -321,7 +357,15 @@ class PengaduanController extends ApiController
             $insertId = $this->pengaduanModel->insert($data);
             
             if (!$insertId) {
+                $db->transRollback();
                 return $this->respondError('Gagal menyimpan pengaduan', 500);
+            }
+            
+            // Commit the transaction
+            $db->transComplete();
+            
+            if ($db->transStatus() === false) {
+                return $this->respondError('Gagal menyimpan pengaduan karena kesalahan transaksi', 500);
             }
 
             // Get the created pengaduan
@@ -347,6 +391,11 @@ class PengaduanController extends ApiController
             ]);
             
         } catch (\Exception $e) {
+            // Rollback transaction if still active
+            $db = \Config\Database::connect();
+            if ($db->transActive()) {
+                $db->transRollback();
+            }
             log_message('error', '[PengaduanController::create] Error: ' . $e->getMessage());
             return $this->respondError('Terjadi kesalahan server: ' . $e->getMessage(), 500);
         }
