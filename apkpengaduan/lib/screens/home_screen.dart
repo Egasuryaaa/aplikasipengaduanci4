@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/api_service.dart';
-import '../widgets/auth_widgets.dart';
-import 'profile/profile.dart';
+import '../widgets/common_bottom_nav.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,7 +10,6 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  int _selectedIndex = 0;
   int _jumlahPengaduan = 0;
   bool _isLoading = true;
 
@@ -51,23 +49,6 @@ class _HomeScreenState extends State<HomeScreen> {
     }
   }
 
-  void _goToProfile(BuildContext context) async {
-    final api = ApiService();
-    final response = await api.getUserDetail();
-    if (response['status'] == true && response['data'] != null) {
-      final user = response['data']['user'];
-      Navigator.of(context).push(
-        MaterialPageRoute(builder: (context) => ProfileScreen(user: user)),
-      );
-    } else {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(response['message'] ?? 'Gagal mengambil data user'),
-        ),
-      );
-    }
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -76,8 +57,8 @@ class _HomeScreenState extends State<HomeScreen> {
         elevation: 0,
         backgroundColor: Colors.blue.shade600,
         foregroundColor: Colors.white,
+        automaticallyImplyLeading: false, // Remove drawer button
       ),
-      drawer: const AuthDrawer(),
       body:
           _isLoading
               ? const Center(child: CircularProgressIndicator())
@@ -230,29 +211,16 @@ class _HomeScreenState extends State<HomeScreen> {
                   ],
                 ),
               ),
-      bottomNavigationBar: BottomNavigationBar(
-        items: const [
-          BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Home'),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.list_alt),
-            label: 'Pengaduan',
-          ),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
-        ],
-        currentIndex: _selectedIndex,
-        onTap: (index) {
-          if (index == 2) {
-            _goToProfile(context);
-          } else if (index == 1) {
-            Navigator.pushNamed(context, '/pengaduan');
-          } else {
-            setState(() {
-              _selectedIndex = index;
-            });
-          }
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () {
+          Navigator.pushNamed(context, '/create-pengaduan');
         },
-        type: BottomNavigationBarType.fixed,
+        backgroundColor: Colors.blue.shade600,
+        foregroundColor: Colors.white,
+        icon: const Icon(Icons.add),
+        label: const Text('Buat Pengaduan'),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 0),
     );
   }
 

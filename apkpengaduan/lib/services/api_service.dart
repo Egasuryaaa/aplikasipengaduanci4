@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:dio/dio.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
@@ -14,12 +16,12 @@ class ApiService {
   // Singleton pattern
   static final ApiService _instance = ApiService._internal();
   factory ApiService() {
-    print('[ApiService] Singleton instance requested - reusing same instance');
+    log('[ApiService] Singleton instance requested - reusing same instance');
     return _instance;
   }
 
   ApiService._internal() {
-    print('[ApiService] Creating new singleton instance');
+    log('[ApiService] Creating new singleton instance');
     _dio.options.baseUrl = baseUrl;
     _dio.options.connectTimeout = const Duration(seconds: 15);
     _dio.options.receiveTimeout = const Duration(seconds: 15);
@@ -32,19 +34,19 @@ class ApiService {
     _dio.interceptors.add(
       InterceptorsWrapper(
         onRequest: (options, handler) {
-          print('[ApiService] ${options.method} ${options.uri}');
-          print('[ApiService] Headers: ${options.headers}');
+          log('[ApiService] ${options.method} ${options.uri}');
+          log('[ApiService] Headers: ${options.headers}');
           handler.next(options);
         },
         onResponse: (response, handler) {
-          print('[ApiService] Response: ${response.statusCode}');
+          log('[ApiService] Response: ${response.statusCode}');
           handler.next(response);
         },
         onError: (DioException e, handler) {
-          print('[ApiService] Error: ${e.message}');
-          print('[ApiService] Response: ${e.response?.data}');
+          log('[ApiService] Error: ${e.message}');
+          log('[ApiService] Response: ${e.response?.data}');
           if (e.response?.statusCode == 401) {
-            print(
+            log(
               '[ApiService] Unauthorized - Token may be invalid or expired',
             );
           }
@@ -60,22 +62,22 @@ class ApiService {
     try {
       final prefs = await SharedPreferences.getInstance();
       final token = prefs.getString('auth_token');
-      print('[ApiService] _initializeToken - Checking for stored token...');
-      print('[ApiService] Token found in storage: ${token != null}');
+      log('[ApiService] _initializeToken - Checking for stored token...');
+      log('[ApiService] Token found in storage: ${token != null}');
       if (token != null && token.isNotEmpty) {
         _dio.options.headers['Authorization'] = 'Bearer $token';
-        print('[ApiService] Token successfully set in headers');
-        print(
+        log('[ApiService] Token successfully set in headers');
+        log(
           '[ApiService] Current Authorization header: ${_dio.options.headers['Authorization']}',
         );
       } else {
-        print(
+        log(
           '[ApiService] WARNING: No token found in storage - user may need to login',
         );
         _dio.options.headers.remove('Authorization');
       }
     } catch (e) {
-      print('[ApiService] ERROR initializing token: $e');
+      log('[ApiService] ERROR initializing token: $e');
     }
   }
 
@@ -114,7 +116,7 @@ class ApiService {
     // Save token to SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString('auth_token', token);
-    print('[ApiService] setToken() saved token and set Authorization header');
+    log('[ApiService] setToken() saved token and set Authorization header');
   }
 
   Future<void> clearToken() async {
@@ -123,7 +125,7 @@ class ApiService {
     // Remove token from SharedPreferences
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove('auth_token');
-    print('[ApiService] clearToken() removed token and Authorization header');
+    log('[ApiService] clearToken() removed token and Authorization header');
   }
 
   // Method untuk validasi token
@@ -132,7 +134,7 @@ class ApiService {
       final response = await _dio.get('/user');
       return response.statusCode == 200;
     } catch (e) {
-      print('[ApiService] Token validation failed: $e');
+      log('[ApiService] Token validation failed: $e');
       return false;
     }
   }
@@ -216,32 +218,32 @@ class ApiService {
     Map<String, dynamic> data,
     List fotoBukti,
   ) async {
-    print('[ApiService] createPengaduan() called with data: $data');
-    print(
+    log('[ApiService] createPengaduan() called with data: $data');
+    log(
       '[ApiService] createPengaduan() called with ${fotoBukti.length} files',
     );
     await _initializeToken();
-    print('[ApiService] createPengaduan() - Token initialization complete');
-    print(
+    log('[ApiService] createPengaduan() - Token initialization complete');
+    log(
       '[ApiService] createPengaduan() - Current headers: ${_dio.options.headers}',
     );
     FormData formData = FormData.fromMap(data);
 
     // Tambah file ke form data
     if (fotoBukti.isNotEmpty) {
-      print(
+      log(
         '[ApiService] createPengaduan() - Processing ${fotoBukti.length} files',
       );
       for (var i = 0; i < fotoBukti.length; i++) {
         var file = fotoBukti[i];
-        print(
+        log(
           '[ApiService] createPengaduan() - Processing file $i: ${file.runtimeType}',
         );
 
         if (kIsWeb) {
           // Web: PlatformFile dari file_picker
           var platformFile = file as PlatformFile;
-          print(
+          log(
             '[ApiService] createPengaduan() - Web file: ${platformFile.name}, ${platformFile.size} bytes',
           );
           formData.files.add(
@@ -257,11 +259,11 @@ class ApiService {
               ),
             ),
           );
-          print('[ApiService] createPengaduan() - Added web file to FormData');
+          log('[ApiService] createPengaduan() - Added web file to FormData');
         } else {
           // Mobile: XFile dari image_picker
           var xFile = file as XFile;
-          print(
+          log(
             '[ApiService] createPengaduan() - Mobile file: ${xFile.name}, path: ${xFile.path}',
           );
           formData.files.add(
@@ -270,13 +272,13 @@ class ApiService {
               await MultipartFile.fromFile(xFile.path, filename: xFile.name),
             ),
           );
-          print(
+          log(
             '[ApiService] createPengaduan() - Added mobile file to FormData',
           );
         }
       }
     } else {
-      print('[ApiService] createPengaduan() - No files to upload');
+      log('[ApiService] createPengaduan() - No files to upload');
     }
 
     final response = await _dio.post('/pengaduan', data: formData);

@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/pengaduan_provider.dart';
 import '../../providers/kategori_provider.dart';
 import '../../models/kategori.dart';
+import '../../widgets/common_bottom_nav.dart';
 import 'dart:io';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:image_picker/image_picker.dart';
@@ -191,6 +192,7 @@ class _CreatePengaduanScreenState extends State<CreatePengaduanScreen> {
         backgroundColor: Colors.blue.shade600,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: true, // Keep back button for create screen
       ),
       body: Form(
         key: _formKey,
@@ -538,6 +540,7 @@ class _CreatePengaduanScreenState extends State<CreatePengaduanScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: -1),
     );
   }
 }

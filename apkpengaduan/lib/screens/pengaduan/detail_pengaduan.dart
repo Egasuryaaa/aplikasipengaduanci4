@@ -4,6 +4,7 @@ import '../../providers/pengaduan_provider.dart';
 import '../../providers/kategori_provider.dart';
 import '../../models/pengaduan.dart';
 import '../../widgets/photo_gallery.dart';
+import '../../widgets/common_bottom_nav.dart';
 
 class DetailPengaduanScreen extends StatefulWidget {
   final String id;
@@ -160,7 +161,7 @@ class _DetailPengaduanScreenState extends State<DetailPengaduanScreen> {
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       decoration: BoxDecoration(
-        color: color.withOpacity(0.1),
+        color: color.withValues(alpha: 0.1),
         borderRadius: BorderRadius.circular(20),
         border: Border.all(color: color),
       ),
@@ -203,7 +204,7 @@ class _DetailPengaduanScreenState extends State<DetailPengaduanScreen> {
             Container(
               padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
-                color: color.withOpacity(0.1),
+                color: color.withValues(alpha: 0.1),
                 borderRadius: BorderRadius.circular(8),
               ),
               child: Icon(icon, color: color, size: 24),
@@ -649,6 +650,7 @@ class _DetailPengaduanScreenState extends State<DetailPengaduanScreen> {
           ),
         ),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: -1),
     );
   }
 }

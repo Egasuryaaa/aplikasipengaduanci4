@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import '../models/user.dart';
@@ -35,7 +37,7 @@ class AuthProvider extends ChangeNotifier {
         _token = response['data']['token'];
         _isLoggedIn = true;
 
-        print(
+        log(
           '[AuthProvider] Login successful - Token received: ${_token?.substring(0, 20)}...',
         );
 
@@ -45,7 +47,7 @@ class AuthProvider extends ChangeNotifier {
         // Simpan data user dan token ke SharedPreferences
         await _saveUserSession();
 
-        print(
+        log(
           '[AuthProvider] Login complete - User: ${_user?.name}, LoggedIn: $_isLoggedIn',
         );
 
@@ -123,7 +125,7 @@ class AuthProvider extends ChangeNotifier {
       await prefs.setString('auth_token', _token!);
       await prefs.setBool('is_logged_in', true);
 
-      print('[AuthProvider] User session saved successfully');
+      log('[AuthProvider] User session saved successfully');
     }
   }
 
@@ -133,7 +135,7 @@ class AuthProvider extends ChangeNotifier {
       final prefs = await SharedPreferences.getInstance();
       final isLoggedIn = prefs.getBool('is_logged_in') ?? false;
 
-      print('[AuthProvider] loadSavedSession - isLoggedIn flag: $isLoggedIn');
+      log('[AuthProvider] loadSavedSession - isLoggedIn flag: $isLoggedIn');
 
       if (isLoggedIn) {
         final token = prefs.getString('auth_token');
@@ -143,10 +145,10 @@ class AuthProvider extends ChangeNotifier {
         final userPhone = prefs.getString('user_phone');
         final userRole = prefs.getString('user_role');
 
-        print(
+        log(
           '[AuthProvider] Token from storage: ${token?.substring(0, 20)}...',
         );
-        print(
+        log(
           '[AuthProvider] User data from storage - ID: $userId, Name: $userName',
         );
 
@@ -177,19 +179,19 @@ class AuthProvider extends ChangeNotifier {
 
           // Set token ke API service
           await _apiService.setToken(_token!);
-          print(
+          log(
             '[AuthProvider] Session restored successfully for user: $userName',
           );
 
           notifyListeners();
         } else {
-          print('[AuthProvider] WARNING: Incomplete user data in storage');
+          log('[AuthProvider] WARNING: Incomplete user data in storage');
         }
       } else {
-        print('[AuthProvider] No saved session found');
+        log('[AuthProvider] No saved session found');
       }
     } catch (e) {
-      print('[AuthProvider] ERROR loading saved session: $e');
+      log('[AuthProvider] ERROR loading saved session: $e');
     }
   }
 
@@ -225,9 +227,9 @@ class AuthProvider extends ChangeNotifier {
 
       notifyListeners();
 
-      print('[AuthProvider] User logged out successfully');
+      log('[AuthProvider] User logged out successfully');
     } catch (e) {
-      print('Error during logout: $e');
+      log('Error during logout: $e');
     }
   }
 
@@ -239,23 +241,23 @@ class AuthProvider extends ChangeNotifier {
     notifyListeners();
 
     try {
-      print('[AuthProvider] checkAuthStatus() - Loading saved session...');
+      log('[AuthProvider] checkAuthStatus() - Loading saved session...');
       await loadSavedSession();
 
       // Jika ada session tersimpan, validasi token ke server
       if (_isLoggedIn && _user != null && _token != null) {
-        print(
+        log(
           '[AuthProvider] Session found - User: ${_user?.name}, validating token...',
         );
         final isValid = await _apiService.validateToken();
         if (!isValid) {
-          print('[AuthProvider] Stored token is invalid, logging out');
+          log('[AuthProvider] Stored token is invalid, logging out');
           await logout();
           return false;
         }
-        print('[AuthProvider] Token is valid, user authenticated');
+        log('[AuthProvider] Token is valid, user authenticated');
       } else {
-        print('[AuthProvider] No valid session found');
+        log('[AuthProvider] No valid session found');
       }
 
       return _isLoggedIn && _user != null && _token != null;

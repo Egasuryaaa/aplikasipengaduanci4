@@ -37,6 +37,7 @@ class _AuthRequiredWidgetState extends State<AuthRequiredWidget> {
 
     if (isAuth && widget.requiredRole != null) {
       // Check role if specified
+      if (!mounted) return;
       final hasRole = AuthHelper.hasRole(context, widget.requiredRole!);
       if (!hasRole) {
         if (mounted) {

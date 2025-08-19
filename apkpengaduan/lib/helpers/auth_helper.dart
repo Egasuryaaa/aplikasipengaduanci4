@@ -80,6 +80,7 @@ class AuthHelper {
     try {
       final confirmed = await showLogoutConfirmation(context);
       if (confirmed == true) {
+        if (!context.mounted) return;
         final authProvider = Provider.of<AuthProvider>(context, listen: false);
         await authProvider.logout();
 

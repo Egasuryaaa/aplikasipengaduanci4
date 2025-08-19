@@ -3,6 +3,7 @@ import 'package:provider/provider.dart';
 import '../../providers/pengaduan_provider.dart';
 import '../../providers/kategori_provider.dart';
 import '../../models/pengaduan.dart';
+import '../../widgets/common_bottom_nav.dart';
 import 'detail_pengaduan.dart';
 import 'create_pengaduan.dart';
 
@@ -32,9 +33,15 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
   }
 
   Future<void> _loadData() async {
-    final pengaduanProvider = Provider.of<PengaduanProvider>(context, listen: false);
-    final kategoriProvider = Provider.of<KategoriProvider>(context, listen: false);
-    
+    final pengaduanProvider = Provider.of<PengaduanProvider>(
+      context,
+      listen: false,
+    );
+    final kategoriProvider = Provider.of<KategoriProvider>(
+      context,
+      listen: false,
+    );
+
     await Future.wait([
       pengaduanProvider.fetchPengaduanList(),
       kategoriProvider.fetchKategoriList(),
@@ -45,7 +52,9 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
     if (_selectedStatusFilter == 'semua') {
       return allPengaduan;
     }
-    return allPengaduan.where((p) => p.status.toLowerCase() == _selectedStatusFilter).toList();
+    return allPengaduan
+        .where((p) => p.status.toLowerCase() == _selectedStatusFilter)
+        .toList();
   }
 
   Color _getStatusColor(String status) {
@@ -88,7 +97,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
         itemBuilder: (context, index) {
           final option = _statusOptions[index];
           final isSelected = _selectedStatusFilter == option['value'];
-          
+
           return Container(
             margin: const EdgeInsets.only(right: 12),
             child: FilterChip(
@@ -99,7 +108,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                   _selectedStatusFilter = option['value'];
                 });
               },
-              selectedColor: (option['color'] as Color).withOpacity(0.2),
+              selectedColor: (option['color'] as Color).withValues(alpha: 0.2),
               checkmarkColor: option['color'],
               labelStyle: TextStyle(
                 color: isSelected ? option['color'] : Colors.grey.shade700,
@@ -117,13 +126,11 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
 
   Widget _buildPengaduanCard(Pengaduan pengaduan, String? kategoriNama) {
     final statusColor = _getStatusColor(pengaduan.status);
-    
+
     return Card(
       margin: const EdgeInsets.only(bottom: 12),
       elevation: 3,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(12),
-      ),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: InkWell(
         borderRadius: BorderRadius.circular(12),
         onTap: () async {
@@ -157,9 +164,12 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                     ),
                   ),
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 10,
+                      vertical: 4,
+                    ),
                     decoration: BoxDecoration(
-                      color: statusColor.withOpacity(0.1),
+                      color: statusColor.withValues(alpha: 0.1),
                       borderRadius: BorderRadius.circular(12),
                       border: Border.all(color: statusColor, width: 1),
                     ),
@@ -188,9 +198,9 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                   ),
                 ],
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Deskripsi pengaduan
               Text(
                 pengaduan.deskripsi,
@@ -202,15 +212,18 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                 maxLines: 3,
                 overflow: TextOverflow.ellipsis,
               ),
-              
+
               const SizedBox(height: 12),
-              
+
               // Info kategori dan tanggal
               Row(
                 children: [
                   if (kategoriNama != null) ...[
                     Container(
-                      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 8,
+                        vertical: 4,
+                      ),
                       decoration: BoxDecoration(
                         color: Colors.purple.shade50,
                         borderRadius: BorderRadius.circular(8),
@@ -238,7 +251,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                     ),
                     const SizedBox(width: 8),
                   ],
-                  
+
                   Expanded(
                     child: Row(
                       children: [
@@ -260,13 +273,16 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                   ),
                 ],
               ),
-              
+
               // Indikator keterangan admin
-              if (pengaduan.keteranganAdmin != null && 
+              if (pengaduan.keteranganAdmin != null &&
                   pengaduan.keteranganAdmin!.isNotEmpty) ...[
                 const SizedBox(height: 8),
                 Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                  padding: const EdgeInsets.symmetric(
+                    horizontal: 8,
+                    vertical: 4,
+                  ),
                   decoration: BoxDecoration(
                     color: Colors.blue.shade50,
                     borderRadius: BorderRadius.circular(6),
@@ -307,10 +323,12 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
         backgroundColor: Colors.blue.shade600,
         foregroundColor: Colors.white,
         elevation: 0,
+        automaticallyImplyLeading: false,
       ),
       body: Consumer2<PengaduanProvider, KategoriProvider>(
         builder: (context, pengaduanProvider, kategoriProvider, child) {
-          if (pengaduanProvider.isLoading && pengaduanProvider.pengaduanList.isEmpty) {
+          if (pengaduanProvider.isLoading &&
+              pengaduanProvider.pengaduanList.isEmpty) {
             return const Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -323,7 +341,8 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
             );
           }
 
-          if (pengaduanProvider.error != null && pengaduanProvider.pengaduanList.isEmpty) {
+          if (pengaduanProvider.error != null &&
+              pengaduanProvider.pengaduanList.isEmpty) {
             return Center(
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
@@ -336,10 +355,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                   const SizedBox(height: 16),
                   Text(
                     pengaduanProvider.error!,
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                    ),
+                    style: TextStyle(fontSize: 16, color: Colors.grey.shade600),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
@@ -353,7 +369,9 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
             );
           }
 
-          final filteredPengaduan = _getFilteredPengaduan(pengaduanProvider.pengaduanList);
+          final filteredPengaduan = _getFilteredPengaduan(
+            pengaduanProvider.pengaduanList,
+          );
 
           return RefreshIndicator(
             onRefresh: _loadData,
@@ -378,46 +396,49 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
                     ],
                   ),
                 ),
-                
+
                 // List Pengaduan
                 Expanded(
-                  child: filteredPengaduan.isEmpty
-                      ? Center(
-                          child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
-                            children: [
-                              Icon(
-                                Icons.inbox_outlined,
-                                size: 64,
-                                color: Colors.grey.shade400,
-                              ),
-                              const SizedBox(height: 16),
-                              Text(
-                                _selectedStatusFilter == 'semua' 
-                                    ? 'Belum ada pengaduan'
-                                    : 'Tidak ada pengaduan dengan status ${_getStatusText(_selectedStatusFilter).toLowerCase()}',
-                                style: TextStyle(
-                                  fontSize: 16,
-                                  color: Colors.grey.shade600,
+                  child:
+                      filteredPengaduan.isEmpty
+                          ? Center(
+                            child: Column(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Icon(
+                                  Icons.inbox_outlined,
+                                  size: 64,
+                                  color: Colors.grey.shade400,
                                 ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ],
+                                const SizedBox(height: 16),
+                                Text(
+                                  _selectedStatusFilter == 'semua'
+                                      ? 'Belum ada pengaduan'
+                                      : 'Tidak ada pengaduan dengan status ${_getStatusText(_selectedStatusFilter).toLowerCase()}',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                  textAlign: TextAlign.center,
+                                ),
+                              ],
+                            ),
+                          )
+                          : ListView.builder(
+                            padding: const EdgeInsets.all(16),
+                            itemCount: filteredPengaduan.length,
+                            itemBuilder: (context, index) {
+                              final pengaduan = filteredPengaduan[index];
+                              final kategori = kategoriProvider.getKategoriById(
+                                pengaduan.kategoriId,
+                              );
+
+                              return _buildPengaduanCard(
+                                pengaduan,
+                                kategori?.nama,
+                              );
+                            },
                           ),
-                        )
-                      : ListView.builder(
-                          padding: const EdgeInsets.all(16),
-                          itemCount: filteredPengaduan.length,
-                          itemBuilder: (context, index) {
-                            final pengaduan = filteredPengaduan[index];
-                            final kategori = kategoriProvider.getKategoriById(pengaduan.kategoriId);
-                            
-                            return _buildPengaduanCard(
-                              pengaduan,
-                              kategori?.nama,
-                            );
-                          },
-                        ),
                 ),
               ],
             ),
@@ -428,9 +449,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
         onPressed: () async {
           final result = await Navigator.push(
             context,
-            MaterialPageRoute(
-              builder: (_) => const CreatePengaduanScreen(),
-            ),
+            MaterialPageRoute(builder: (_) => const CreatePengaduanScreen()),
           );
           // Refresh list jika ada pengaduan baru
           if (result == true) {
@@ -442,6 +461,7 @@ class _ListPengaduanScreenState extends State<ListPengaduanScreen> {
         icon: const Icon(Icons.add),
         label: const Text('Buat Pengaduan'),
       ),
+      bottomNavigationBar: const CommonBottomNav(currentIndex: 1),
     );
   }
 }

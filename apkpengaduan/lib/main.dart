@@ -67,7 +67,7 @@ class MyApp extends StatelessWidget {
         '/home': (context) => const HomeScreen(),
         '/pengaduan': (context) => const ListPengaduanScreen(),
         '/create-pengaduan': (context) => const CreatePengaduanScreen(),
-        '/profile': (context) => ProfileScreen(user: const {}),
+        '/profile': (context) => const ProfileScreen(),
       },
       onGenerateRoute: (settings) {
         // Route untuk detail pengaduan dengan parameter ID
