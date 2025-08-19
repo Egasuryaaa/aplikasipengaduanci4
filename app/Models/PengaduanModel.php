@@ -45,7 +45,12 @@ class PengaduanModel extends Model
     protected function generateUuid(array $data)
     {
         if (!isset($data['data']['uuid'])) {
-            $data['data']['uuid'] = service('uuid')->uuid4()->toString();
+            // Pastikan helper diload
+            if (!function_exists('uuid4')) {
+                helper('pengaduan');
+            }
+            // Gunakan fungsi uuid4() dari helper
+            $data['data']['uuid'] = uuid4();
         }
         return $data;
     }

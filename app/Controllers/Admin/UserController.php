@@ -195,6 +195,9 @@ class UserController extends BaseController
             $data['password'] = $this->request->getPost('password');
         }
 
+        // Skip validation untuk password karena itu opsional saat update
+        $this->userModel->skipValidation(true);
+        
         if ($this->userModel->update($id, $data)) {
             return redirect()->to('/admin/users')->with('success', 'Pengguna berhasil diperbarui');
         } else {

@@ -28,7 +28,7 @@ class UserModel extends Model
         'name'     => 'required|min_length[3]|max_length[255]',
         'email'    => 'required|valid_email|is_unique[users.email,id,{id}]',
         'phone'    => 'permit_empty|numeric|min_length[10]|max_length[15]',
-        'password' => 'required|min_length[8]',
+        'password' => 'permit_empty|min_length[8]', // ubah required menjadi permit_empty
         'role'     => 'required|in_list[master,admin,user]',
     ];
     protected $validationMessages   = [];
@@ -51,7 +51,12 @@ class UserModel extends Model
     protected function generateUuid(array $data)
     {
         if (!isset($data['data']['uuid'])) {
-            $data['data']['uuid'] = service('uuid')->uuid4()->toString();
+            // Pastikan helper diload
+            if (!function_exists('uuid4')) {
+                helper('pengaduan');
+            }
+            // Gunakan fungsi uuid4() dari helper
+            $data['data']['uuid'] = uuid4();
         }
         return $data;
     }
@@ -64,6 +69,14 @@ class UserModel extends Model
     public function findByUuid($uuid)
     {
         return $this->where('uuid', $uuid)->first();
+    }
+    
+    // Override insert method untuk memastikan password required saat insert
+    public function insert($data = null, bool $returnID = true)
+    {
+        // Set validasi password ke required untuk insert
+        $this->validationRules['password'] = 'required|min_length[8]';
+        return parent::insert($data, $returnID);
     }
 
     public function getAdmins()
