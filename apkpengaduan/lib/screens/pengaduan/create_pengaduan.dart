@@ -198,88 +198,179 @@ class _CreatePengaduanScreenState extends State<CreatePengaduanScreen> {
         key: _formKey,
         child: SingleChildScrollView(
           padding: const EdgeInsets.all(16.0),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Header Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Container(
-                  padding: const EdgeInsets.all(20),
-                  decoration: BoxDecoration(
-                    borderRadius: BorderRadius.circular(16),
-                    gradient: LinearGradient(
-                      colors: [Colors.blue.shade600, Colors.blue.shade400],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          child: Center(
+            child: ConstrainedBox(
+              constraints: const BoxConstraints(
+                maxWidth: 500, // batas lebar maksimal agar tidak overflow
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.stretch,
+                children: [
+                  // Header Card
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Container(
+                      padding: const EdgeInsets.all(20),
+                      decoration: BoxDecoration(
+                        borderRadius: BorderRadius.circular(16),
+                        gradient: LinearGradient(
+                          colors: [Colors.blue.shade600, Colors.blue.shade400],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                      ),
+                      child: const Column(
+                        children: [
+                          Icon(
+                            Icons.report_problem,
+                            size: 48,
+                            color: Colors.white,
+                          ),
+                          SizedBox(height: 12),
+                          Text(
+                            'Sampaikan Keluhan Anda',
+                            style: TextStyle(
+                              fontSize: 20,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
+                          Text(
+                            'Isi formulir di bawah untuk membuat pengaduan',
+                            style: TextStyle(
+                              fontSize: 14,
+                              color: Colors.white70,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        ],
+                      ),
                     ),
                   ),
-                  child: const Column(
-                    children: [
-                      Icon(Icons.report_problem, size: 48, color: Colors.white),
-                      SizedBox(height: 12),
-                      Text(
-                        'Sampaikan Keluhan Anda',
-                        style: TextStyle(
-                          fontSize: 20,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
-                      ),
-                      Text(
-                        'Isi formulir di bawah untuk membuat pengaduan',
-                        style: TextStyle(fontSize: 14, color: Colors.white70),
-                        textAlign: TextAlign.center,
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-              const SizedBox(height: 24),
+                  const SizedBox(height: 24),
 
-              // Form Card
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(16),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Text(
-                        'Kategori Pengaduan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
+                  // Form Card
+                  Card(
+                    elevation: 4,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.all(20),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const Text(
+                            'Kategori Pengaduan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
+                            ),
+                          ),
+                          const SizedBox(height: 12),
 
-                      // Dropdown Kategori
-                      kategoriProvider.isLoading
-                          ? Container(
-                            height: 56,
-                            decoration: BoxDecoration(
-                              border: Border.all(color: Colors.grey.shade300),
-                              borderRadius: BorderRadius.circular(12),
+                          // Dropdown Kategori
+                          kategoriProvider.isLoading
+                              ? Container(
+                                height: 56,
+                                decoration: BoxDecoration(
+                                  border: Border.all(
+                                    color: Colors.grey.shade300,
+                                  ),
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                child: const Center(
+                                  child: CircularProgressIndicator(),
+                                ),
+                              )
+                              : DropdownButtonFormField<String>(
+                                value: _selectedKategoriId,
+                                isExpanded: true, // Mengatasi overflow pada dropdown
+                                decoration: InputDecoration(
+                                  hintText: 'Pilih kategori pengaduan',
+                                  prefixIcon: Icon(
+                                    Icons.category,
+                                    color: Colors.blue.shade600,
+                                  ),
+                                  border: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  enabledBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.grey.shade300,
+                                    ),
+                                  ),
+                                  focusedBorder: OutlineInputBorder(
+                                    borderRadius: BorderRadius.circular(12),
+                                    borderSide: BorderSide(
+                                      color: Colors.blue.shade600,
+                                      width: 2,
+                                    ),
+                                  ),
+                                  filled: true,
+                                  fillColor: Colors.grey.shade50,
+                                ),
+                                items: kategoriProvider.kategoriList.map((
+                                  Kategori kategori,
+                                ) {
+                                  return DropdownMenuItem<String>(
+                                    value: kategori.id,
+                                    child: Text(
+                                      kategori.nama,
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w600,
+                                        fontSize: 14,
+                                      ),
+                                      overflow: TextOverflow.ellipsis,
+                                      maxLines: 1,
+                                    ),
+                                  );
+                                }).toList(),
+                                onChanged: (String? newValue) {
+                                  setState(() {
+                                    _selectedKategoriId = newValue;
+                                  });
+                                },
+                                validator: (value) {
+                                  if (value == null || value.isEmpty) {
+                                    return 'Kategori wajib dipilih';
+                                  }
+                                  return null;
+                                },
+                              ),
+
+                          const SizedBox(height: 24),
+
+                          const Text(
+                            'Deskripsi Pengaduan',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
-                            child: const Center(
-                              child: CircularProgressIndicator(),
-                            ),
-                          )
-                          : DropdownButtonFormField<String>(
-                            value: _selectedKategoriId,
+                          ),
+                          const SizedBox(height: 12),
+
+                          // Text Area Deskripsi
+                          TextFormField(
+                            controller: _deskripsiController,
+                            maxLines: 6,
                             decoration: InputDecoration(
-                              hintText: 'Pilih kategori pengaduan',
-                              prefixIcon: Icon(
-                                Icons.category,
-                                color: Colors.blue.shade600,
+                              hintText: 'Jelaskan detail pengaduan Anda...',
+                              prefixIcon: Padding(
+                                padding: const EdgeInsets.only(bottom: 80),
+                                child: Icon(
+                                  Icons.description,
+                                  color: Colors.blue.shade600,
+                                ),
                               ),
                               border: OutlineInputBorder(
                                 borderRadius: BorderRadius.circular(12),
@@ -303,240 +394,167 @@ class _CreatePengaduanScreenState extends State<CreatePengaduanScreen> {
                               filled: true,
                               fillColor: Colors.grey.shade50,
                             ),
-                            items:
-                                kategoriProvider.kategoriList.map((
-                                  Kategori kategori,
-                                ) {
-                                  return DropdownMenuItem<String>(
-                                    value: kategori.id,
-                                    child: Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Text(
-                                          kategori.nama,
-                                          style: const TextStyle(
-                                            fontWeight: FontWeight.w600,
-                                            fontSize: 14,
-                                          ),
-                                        ),
-                                        Text(
-                                          kategori.deskripsi,
-                                          style: TextStyle(
-                                            fontSize: 12,
-                                            color: Colors.grey.shade600,
-                                          ),
-                                          maxLines: 1,
-                                          overflow: TextOverflow.ellipsis,
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }).toList(),
-                            onChanged: (String? newValue) {
-                              setState(() {
-                                _selectedKategoriId = newValue;
-                              });
-                            },
                             validator: (value) {
-                              if (value == null || value.isEmpty) {
-                                return 'Kategori wajib dipilih';
+                              if (value == null || value.trim().isEmpty) {
+                                return 'Deskripsi pengaduan wajib diisi';
+                              }
+                              if (value.trim().length < 10) {
+                                return 'Deskripsi minimal 10 karakter';
                               }
                               return null;
                             },
                           ),
 
-                      const SizedBox(height: 24),
-
-                      const Text(
-                        'Deskripsi Pengaduan',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-
-                      // Text Area Deskripsi
-                      TextFormField(
-                        controller: _deskripsiController,
-                        maxLines: 6,
-                        decoration: InputDecoration(
-                          hintText: 'Jelaskan detail pengaduan Anda...',
-                          prefixIcon: Padding(
-                            padding: const EdgeInsets.only(bottom: 80),
-                            child: Icon(
-                              Icons.description,
-                              color: Colors.blue.shade600,
+                          const SizedBox(height: 24),
+                          // Upload Foto Bukti
+                          const Text(
+                            'Foto Bukti (opsional)',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.black87,
                             ),
                           ),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          enabledBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
-                          ),
-                          focusedBorder: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(
-                              color: Colors.blue.shade600,
-                              width: 2,
-                            ),
-                          ),
-                          filled: true,
-                          fillColor: Colors.grey.shade50,
-                        ),
-                        validator: (value) {
-                          if (value == null || value.trim().isEmpty) {
-                            return 'Deskripsi pengaduan wajib diisi';
-                          }
-                          if (value.trim().length < 10) {
-                            return 'Deskripsi minimal 10 karakter';
-                          }
-                          return null;
-                        },
-                      ),
-
-                      const SizedBox(height: 24),
-                      // Upload Foto Bukti
-                      Text(
-                        'Foto Bukti (opsional)',
-                        style: TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.black87,
-                        ),
-                      ),
-                      const SizedBox(height: 12),
-                      Wrap(
-                        spacing: 8,
-                        children: [
-                          ..._fotoBukti.map(
-                            (file) => Stack(
-                              alignment: Alignment.topRight,
-                              children: [
-                                Container(
+                          const SizedBox(height: 12),
+                          Wrap(
+                            spacing: 8,
+                            runSpacing: 8,
+                            children: [
+                              ..._fotoBukti.map(
+                                (file) => Stack(
+                                  alignment: Alignment.topRight,
+                                  children: [
+                                    Container(
+                                      width: 80,
+                                      height: 80,
+                                      margin: const EdgeInsets.only(top: 8, right: 8),
+                                      decoration: BoxDecoration(
+                                        borderRadius: BorderRadius.circular(8),
+                                        border: Border.all(
+                                          color: Colors.grey.shade300,
+                                        ),
+                                      ),
+                                      child: ClipRRect(
+                                        borderRadius: BorderRadius.circular(8),
+                                        child: kIsWeb
+                                            ? Image.memory(
+                                                (file as PlatformFile).bytes!,
+                                                fit: BoxFit.cover,
+                                              )
+                                            : Image.file(
+                                                File((file as XFile).path),
+                                                fit: BoxFit.cover,
+                                              ),
+                                      ),
+                                    ),
+                                    Positioned(
+                                      top: 0,
+                                      right: 0,
+                                      child: GestureDetector(
+                                        onTap: () {
+                                          setState(() {
+                                            _fotoBukti.remove(file);
+                                          });
+                                        },
+                                        child: Container(
+                                          padding: const EdgeInsets.all(4),
+                                          decoration: const BoxDecoration(
+                                            color: Colors.red,
+                                            shape: BoxShape.circle,
+                                          ),
+                                          child: const Icon(
+                                            Icons.close,
+                                            color: Colors.white,
+                                            size: 16,
+                                          ),
+                                        ),
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                              InkWell(
+                                onTap: _pickFotoBukti,
+                                child: Container(
                                   width: 80,
                                   height: 80,
-                                  margin: EdgeInsets.only(top: 8, right: 8),
                                   decoration: BoxDecoration(
+                                    color: Colors.grey.shade200,
                                     borderRadius: BorderRadius.circular(8),
                                     border: Border.all(
-                                      color: Colors.grey.shade300,
+                                      color: Colors.grey.shade400,
                                     ),
                                   ),
-                                  child: ClipRRect(
-                                    borderRadius: BorderRadius.circular(8),
-                                    child:
-                                        kIsWeb
-                                            ? Image.memory(
-                                              (file as PlatformFile).bytes!,
-                                              fit: BoxFit.cover,
-                                            )
-                                            : Image.file(
-                                              File((file as XFile).path),
-                                              fit: BoxFit.cover,
-                                            ),
+                                  child: Icon(
+                                    Icons.add_a_photo,
+                                    color: Colors.blue.shade600,
                                   ),
                                 ),
-                                IconButton(
-                                  icon: Icon(
-                                    Icons.close,
-                                    color: Colors.red,
-                                    size: 20,
-                                  ),
-                                  onPressed: () {
-                                    setState(() {
-                                      _fotoBukti.remove(file);
-                                    });
-                                  },
-                                ),
-                              ],
-                            ),
+                              ),
+                            ],
                           ),
-                          InkWell(
-                            onTap: _pickFotoBukti,
-                            child: Container(
-                              width: 80,
-                              height: 80,
-                              decoration: BoxDecoration(
-                                color: Colors.grey.shade200,
-                                borderRadius: BorderRadius.circular(8),
-                                border: Border.all(color: Colors.grey.shade400),
+
+                          const SizedBox(height: 32),
+
+                          // Submit Button
+                          SizedBox(
+                            width: double.infinity,
+                            height: 52,
+                            child: ElevatedButton(
+                              onPressed: _isLoading ? null : _submitPengaduan,
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: Colors.blue.shade600,
+                                foregroundColor: Colors.white,
+                                shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(12),
+                                ),
+                                elevation: 2,
                               ),
-                              child: Icon(
-                                Icons.add_a_photo,
-                                color: Colors.blue.shade600,
-                              ),
+                              child: _isLoading
+                                  ? Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const SizedBox(
+                                          width: 20,
+                                          height: 20,
+                                          child: CircularProgressIndicator(
+                                            strokeWidth: 2,
+                                            color: Colors.white,
+                                          ),
+                                        ),
+                                        const SizedBox(width: 12),
+                                        Text(
+                                          _isEditMode
+                                              ? 'Memperbarui...'
+                                              : 'Membuat Pengaduan...',
+                                        ),
+                                      ],
+                                    )
+                                  : Row(
+                                      mainAxisAlignment: MainAxisAlignment.center,
+                                      children: [
+                                        const Icon(Icons.send),
+                                        const SizedBox(width: 8),
+                                        Text(
+                                          _isEditMode
+                                              ? 'Perbarui Pengaduan'
+                                              : 'Buat Pengaduan',
+                                          style: const TextStyle(
+                                            fontSize: 16,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
                             ),
                           ),
                         ],
                       ),
-
-                      const SizedBox(height: 32),
-
-                      // Submit Button
-                      SizedBox(
-                        width: double.infinity,
-                        height: 52,
-                        child: ElevatedButton(
-                          onPressed: _isLoading ? null : _submitPengaduan,
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.blue.shade600,
-                            foregroundColor: Colors.white,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 2,
-                          ),
-                          child:
-                              _isLoading
-                                  ? Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      SizedBox(
-                                        width: 20,
-                                        height: 20,
-                                        child: CircularProgressIndicator(
-                                          strokeWidth: 2,
-                                          color: Colors.white,
-                                        ),
-                                      ),
-                                      SizedBox(width: 12),
-                                      Text(
-                                        _isEditMode
-                                            ? 'Memperbarui...'
-                                            : 'Membuat Pengaduan...',
-                                      ),
-                                    ],
-                                  )
-                                  : Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(Icons.send),
-                                      SizedBox(width: 8),
-                                      Text(
-                                        _isEditMode
-                                            ? 'Perbarui Pengaduan'
-                                            : 'Buat Pengaduan',
-                                        style: TextStyle(
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                        ),
-                      ),
-                    ],
+                    ),
                   ),
-                ),
+                ],
               ),
-            ],
+            ),
           ),
         ),
       ),

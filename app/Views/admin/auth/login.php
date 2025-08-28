@@ -136,11 +136,6 @@
             <hr class="my-4">
             
             <div class="text-center">
-                <small class="text-muted">
-                    <strong>Akun Default:</strong><br>
-                    Master: master@kominfo-gunungkidul.go.id / master123<br>
-                    Admin: admin1@kominfo-gunungkidul.go.id / admin123
-                </small>
             </div>
         </div>
     </div>

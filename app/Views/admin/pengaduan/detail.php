@@ -158,13 +158,13 @@ Detail Pengaduan - <?= $pengaduan['nomor_pengaduan'] ?>
                         <li><a class="dropdown-item" href="#" data-bs-toggle="modal" data-bs-target="#statusModal">
                             <i class="fas fa-edit fa-sm fa-fw me-2"></i> Update Status
                         </a></li>
-                        <li><a class="dropdown-item" href="<?= base_url('admin/pengaduan/' . $pengaduan['id'] . '/edit') ?>">
+                        <!-- <li><a class="dropdown-item" href="<?= base_url('admin/pengaduan/' . $pengaduan['id'] . '/edit') ?>">
                             <i class="fas fa-pen fa-sm fa-fw me-2"></i> Edit Pengaduan
-                        </a></li>
-                        <li><hr class="dropdown-divider"></li>
+                        </a></li> -->
+                        <!-- <li><hr class="dropdown-divider"></li>
                         <li><a class="dropdown-item text-danger" href="#" data-bs-toggle="modal" data-bs-target="#deleteModal">
                             <i class="fas fa-trash fa-sm fa-fw me-2"></i> Hapus Pengaduan
-                        </a></li>
+                        </a></li> -->
                     </ul>
                 </div>
             </div>
@@ -279,12 +279,12 @@ Detail Pengaduan - <?= $pengaduan['nomor_pengaduan'] ?>
                         <i class="fas fa-comments"></i> Komentar
                     </button>
                 </li>
-                <li class="nav-item" role="presentation">
+                <!-- <li class="nav-item" role="presentation">
                     <button class="nav-link" id="history-tab" data-bs-toggle="tab" 
                             data-bs-target="#history" type="button" role="tab" aria-selected="false">
                         <i class="fas fa-history"></i> Riwayat Status
                     </button>
-                </li>
+                </li> -->
             </ul>
         </div>
         <div class="card-body">

@@ -80,10 +80,6 @@
             <div class="card-header py-3 d-flex flex-row align-items-center justify-content-between">
                 <h6 class="m-0 font-weight-bold text-white">Daftar Pengaduan</h6>
                 <div>
-                    <a href="<?= base_url('admin/pengaduan/export') ?>?<?= http_build_query(request()->getGet()) ?>" 
-                       class="btn btn-success btn-sm">
-                        <i class="fas fa-download"></i> Export Excel
-                    </a>
                 </div>
             </div>
             <div class="card-body">
@@ -196,10 +192,10 @@
                                                class="btn btn-sm btn-primary mb-1" title="Detail">
                                                 <i class="fas fa-eye"></i>
                                             </a>
-                                            <button type="button" class="btn btn-sm btn-warning mb-1" 
+                                            <!-- <button type="button" class="btn btn-sm btn-warning mb-1" 
                                                     onclick="window.location.href='<?= base_url('admin/pengaduan/' . $item['id'] . '/edit') ?>'" title="Edit">
                                                 <i class="fas fa-edit"></i>
-                                            </button>
+                                            </button> -->
                                         </div>
                                     </td>
                                 </tr>
