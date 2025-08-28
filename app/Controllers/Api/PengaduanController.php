@@ -250,9 +250,9 @@ class PengaduanController extends ApiController
             }
             
             // Debug uploaded files
-            log_message('debug', '[PengaduanController::create] Files received: ' . count($files) . ' files found');
-            log_message('debug', '[PengaduanController::create] POST data: ' . json_encode($this->request->getPost()));
-            log_message('debug', '[PengaduanController::create] FILES array: ' . json_encode($_FILES));
+            // log_message('debug', '[PengaduanController::create] Files received: ' . count($files) . ' files found');
+            // log_message('debug', '[PengaduanController::create] POST data: ' . json_encode($this->request->getPost()));
+            // log_message('debug', '[PengaduanController::create] FILES array: ' . json_encode($_FILES));
             
             if (!empty($files)) {
                 log_message('debug', '[PengaduanController::create] Processing ' . count($files) . ' files');

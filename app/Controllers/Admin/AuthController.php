@@ -82,7 +82,11 @@ class AuthController extends BaseController
             if (!$user['is_active']) {
                 return redirect()->back()->withInput()->with('error', 'Akun Anda tidak aktif');
             }
-
+            
+            // pentinggg
+            // pentinggg
+            // pentinggg
+            // pentinggg
             // Check if user has admin/master role
             if (!in_array($user['role'], ['admin', 'master'])) {
                 return redirect()->back()->withInput()->with('error', 'Akses ditolak. Hanya admin dan master yang dapat login');

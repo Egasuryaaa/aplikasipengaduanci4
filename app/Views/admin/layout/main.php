@@ -102,17 +102,23 @@
                     <a class="nav-link <?= strpos(uri_string(), 'admin/pengaduan') === 0 ? 'active' : '' ?>" href="<?= base_url('admin/pengaduan') ?>">
                         <i class="fas fa-file-alt me-2"></i> Pengaduan
                     </a>
+
+                <!-- jadi kalau navbar ini cuma bisa diakses oleh master saja -->
                 </li>
+                <?php if (session('user_role') === 'master'): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= strpos(uri_string(), 'admin/instansi') === 0 ? 'active' : '' ?>" href="<?= base_url('admin/instansi') ?>">
                         <i class="fas fa-building me-2"></i> Instansi
                     </a>
                 </li>
+                <?php endif; ?>
+                <?php if (session('user_role') === 'master'): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= strpos(uri_string(), 'admin/kategori') === 0 ? 'active' : '' ?>" href="<?= base_url('admin/kategori') ?>">
                         <i class="fas fa-tags me-2"></i> Kategori
                     </a>
                 </li>
+                <?php endif; ?>
                 <?php if (session('user_role') === 'master'): ?>
                 <li class="nav-item">
                     <a class="nav-link <?= strpos(uri_string(), 'admin/users') === 0 ? 'active' : '' ?>" href="<?= base_url('admin/users') ?>">
@@ -120,6 +126,10 @@
                     </a>
                 </li>
                 <?php endif; ?>
+                <!-- jadi kalau navbar ini cuma bisa diakses oleh master saja -->
+
+
+                
                 <li class="nav-item mt-3">
                     <a class="nav-link text-danger" href="<?= base_url('admin/logout') ?>">
                         <i class="fas fa-sign-out-alt me-2"></i> Logout

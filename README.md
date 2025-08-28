@@ -1,205 +1,348 @@
-# Sistem Pengaduan Kominfo Gunung Kidul
+# Dokumentasi Sistem Pengaduan Kominfo Gunung Kidul
 
-## Overview
+## Deskripsi Project
 
-Sistem pengaduan online untuk Dinas Komunikasi dan Informatika Kabupaten Gunung Kidul dengan arsitektur terpisah:
+Sistem Pengaduan Kominfo Gunung Kidul adalah aplikasi web berbasis CodeIgniter 4 yang memungkinkan masyarakat untuk mengajukan pengaduan terkait layanan teknologi informasi dan komunikasi. Sistem ini dilengkapi dengan panel admin untuk mengelola pengaduan dan aplikasi mobile Flutter untuk akses yang lebih mudah.
 
-- **Web Admin Dashboard**: CodeIgniter 4 + PostgreSQL untuk pengelolaan admin
-- **Mobile App API**: RESTful API dengan JWT authentication untuk aplikasi mobile Flutter
+## Teknologi Stack
 
-## Technology Stack
-
-### Backend
-
-- **Framework**: CodeIgniter 4
+- **Backend**: CodeIgniter 4 (PHP 8.1+)
 - **Database**: PostgreSQL
-- **Authentication**:
-  - Session-based untuk web admin
-  - JWT untuk mobile API
-- **Security**: CSRF protection, CSP headers, CORS configuration
-- **File Storage**: Local storage dengan kompresi gambar
+- **Frontend Web**: Bootstrap 5, jQuery, DataTables, Chart.js
+- **Mobile App**: Flutter (Dart)
+- **Authentication**: JWT untuk API, Session untuk Web Admin
 
-### Frontend
+---
 
-- **Web Admin**: Server-side rendering dengan Bootstrap
-- **Mobile App**: Flutter (repository terpisah)
+## 1. ROLE MANAGEMENT
 
-## Features
+### Role yang Tersedia
 
-### Web Admin Dashboard
+```
+1. Master   - Super Admin (akses penuh)
+2. Admin    - Administrator (akses terbatas)
+3. User     - Pengguna biasa (hanya via mobile app)
+```
 
-- ✅ Login/logout dengan session management
-- ✅ Dashboard dengan statistik dan chart
-- ✅ Manajemen pengaduan (view, assign, update status)
-- ✅ Manajemen user (admin/master only)
-- ✅ Master data (instansi, kategori)
-- ✅ Sistem komentar
-- ✅ History status pengaduan
-- ✅ Notifikasi real-time
-- ✅ Export/report data
+### Implementasi Role
 
-### Mobile API
+- **Location**: `app/Filters/AuthFilter.php`
+- **Hierarchy**: `master > admin > user`
+- **Middleware**: Filter `auth` dengan parameter role
 
-- ✅ User registration/login dengan JWT
-- ✅ Profile management
-- ✅ Submit pengaduan dengan foto
-- ✅ Tracking status pengaduan
-- ✅ Notifikasi push
-- ✅ File upload dengan compression
-- ✅ Offline-first data structure
+### Hak Akses per Role
 
-### Security Features
+| Fitur                   | Master | Admin | User |
+| ----------------------- | ------ | ----- | ---- |
+| Dashboard               | ✅     | ✅    | ❌   |
+| Kelola Pengaduan        | ✅     | ✅    | ❌   |
+| Kelola User             | ✅     | ❌    | ❌   |
+| Kelola Instansi         | ✅     | ✅    | ❌   |
+| Kelola Kategori         | ✅     | ✅    | ❌   |
+| Buat Pengaduan (Mobile) | ❌     | ❌    | ✅   |
 
-- ✅ CSRF protection untuk semua form
-- ✅ Content Security Policy (CSP) headers
-- ✅ CORS configuration untuk mobile
-- ✅ JWT dengan refresh token
-- ✅ Rate limiting
-- ✅ Input sanitization & validation
-- ✅ Secure file upload
-- ✅ Session hijacking protection
-- ✅ SQL injection prevention
+---
 
-## Installation
+## 2. CONTROLLERS
 
-### Prerequisites
+### Admin Controllers (Web)
+
+```
+app/Controllers/Admin/
+├── AuthController.php      - Login/Logout admin
+├── DashboardController.php - Dashboard & statistik
+├── PengaduanController.php - CRUD pengaduan
+├── UserController.php     - Manajemen user (Master only)
+├── InstansiController.php - Manajemen instansi
+└── KategoriController.php - Manajemen kategori
+```
+
+### API Controllers (Mobile)
+
+```
+app/Controllers/Api/
+├── AuthController.php        - Register/Login mobile
+├── PengaduanController.php   - CRUD pengaduan
+├── UserController.php       - Profile user
+├── KategoriController.php   - List kategori
+└── PengaduanStatistic.php  - Statistik pengaduan
+```
+
+### Relasi Controller Utama
+
+```
+Login → Dashboard → Management Modules
+  ↓         ↓              ↓
+Auth    Statistics    Pengaduan/User/Instansi/Kategori
+```
+
+---
+
+## 3. MODELS
+
+| Model                    | Tabel              | Fungsi Utama                      |
+| ------------------------ | ------------------ | --------------------------------- |
+| `UserModel`              | users              | Autentikasi, manajemen user, role |
+| `PengaduanModel`         | pengaduan          | CRUD pengaduan, statistik, relasi |
+| `InstansiModel`          | instansi           | Master data instansi              |
+| `KategoriPengaduanModel` | kategori_pengaduan | Master data kategori              |
+| `KomentarPengaduanModel` | komentar_pengaduan | Komentar/tanggapan                |
+| `StatusHistoryModel`     | status_history     | Log perubahan status              |
+
+### Database Schema
+
+```sql
+-- Users Table
+users (id, uuid, name, email, phone, password, role, instansi_id, is_active)
+
+-- Pengaduan Table
+pengaduan (id, uuid, nomor_pengaduan, user_id, instansi_id, kategori_id,
+          deskripsi, foto_bukti, status, tanggal_selesai, keterangan_admin)
+
+-- Supporting Tables
+instansi (id, nama, alamat, telepon, email, is_active)
+kategori_pengaduan (id, nama, deskripsi, is_active)
+komentar_pengaduan (id, pengaduan_id, user_id, komentar, is_internal)
+status_history (id, pengaduan_id, status_old, status_new, keterangan, updated_by)
+```
+
+---
+
+## 4. VIEW STRUCTURE
+
+### Admin Views
+
+```
+app/Views/admin/
+├── layout/
+│   └── main.php              - Layout utama dengan sidebar
+├── auth/
+│   └── login.php             - Halaman login admin
+├── dashboard/
+│   └── index.php             - Dashboard dengan chart & statistik
+├── pengaduan/
+│   ├── index.php             - List pengaduan dengan filter
+│   ├── detail.php            - Detail pengaduan + komentar
+│   └── edit.php              - Edit pengaduan
+├── users/
+│   ├── index.php             - List user (Master only)
+│   ├── create.php            - Form tambah user
+│   └── edit.php              - Form edit user
+├── instansi/
+│   ├── index.php             - List instansi
+│   ├── create.php            - Form tambah instansi
+│   └── edit.php              - Form edit instansi
+└── kategori/
+    ├── index.php             - List kategori
+    ├── create.php            - Form tambah kategori
+    └── edit.php              - Form edit kategori
+```
+
+### Render Flow
+
+```
+Controller → Load Data → View (extend layout/main.php) → Browser
+```
+
+---
+
+
+### Route Configuration
+
+```php
+// app/Config/Routes.php
+
+// Admin Routes (Session-based)
+admin/
+├── login (public)
+├── dashboard (auth required)
+├── pengaduan/* (auth required)
+├── users/* (auth:master required)
+├── instansi/* (auth required)
+└── kategori/* (auth required)
+
+// API Routes (Token-based)
+api/
+├── register, login (public)
+├── user, pengaduan (apiauth required)
+└── kategori (public)
+```
+
+### Filters & Middleware
+
+```php
+// app/Config/Filters.php
+'auth'    => AuthFilter::class      - Session-based auth
+'apiauth' => ApiAuthFilter::class   - JWT token auth
+'cors'    => CorsFilter::class      - CORS headers
+'csrf'    => CSRF::class            - CSRF protection
+```
+
+### Libraries & Helpers
+
+- **JWT**: Firebase JWT untuk API authentication
+- **Helper**: `pengaduan_helper.php` - UUID generation, response helpers
+- **CORS**: Custom CORS filter untuk mobile API
+- **File Upload**: Handling foto bukti pengaduan
+
+---
+
+## 6. ALUR APLIKASI
+
+### Web Admin Flow
+
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│ Login Admin │ -> │  Dashboard   │ -> │ Management  │
+│             │    │ (Statistics) │    │  Modules    │
+└─────────────┘    └──────────────┘    └─────────────┘
+       │                    │                   │
+       v                    v                   v
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│ AuthFilter  │    │ ChartJS/     │    │ CRUD        │
+│ Session     │    │ DataTables   │    │ Operations  │
+└─────────────┘    └──────────────┘    └─────────────┘
+```
+
+### Mobile API Flow
+
+```
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│Register/    │ -> │ JWT Token    │ -> │ API Calls   │
+│Login Mobile │    │ Generation   │    │ (CRUD)      │
+└─────────────┘    └──────────────┘    └─────────────┘
+       │                    │                   │
+       v                    v                   v
+┌─────────────┐    ┌──────────────┐    ┌─────────────┐
+│ ApiAuth     │    │ Bearer Token │    │ JSON        │
+│ Filter      │    │ Header       │    │ Response    │
+└─────────────┘    └──────────────┘    └─────────────┘
+```
+
+### Pengaduan Lifecycle
+
+```
+[User Submit] -> [Pending] -> [Admin Process] -> [Diproses] -> [Selesai/Ditolak]
+                     │              │               │              │
+                     v              v               v              v
+             [Auto Number]   [Add Comments]  [Status Update]  [Final State]
+```
+
+### ASCII Flowchart - Complete System
+
+```
+                    ┌─────────────────┐
+                    │   ENTRY POINT   │
+                    └─────────────────┘
+                             │
+                  ┌──────────┴──────────┐
+                  │                     │
+           ┌─────────────┐      ┌─────────────┐
+           │  WEB ADMIN  │      │ MOBILE APP  │
+           └─────────────┘      └─────────────┘
+                  │                     │
+                  │                     │
+        ┌─────────┴─────────┐          │
+        │                   │          │
+ ┌─────────────┐    ┌─────────────┐    │
+ │   LOGIN     │    │   ROUTES    │    │
+ │ (Session)   │    │   /admin/*  │    │
+ └─────────────┘    └─────────────┘    │
+        │                   │          │
+        │                   │          │
+ ┌─────────────┐    ┌─────────────┐    │
+ │ AuthFilter  │    │ Controllers │    │
+ │ (Role Check)│    │ Admin/*     │    │
+ └─────────────┘    └─────────────┘    │
+        │                   │          │
+        │          ┌────────┴────────┐ │
+        │          │                 │ │
+        │   ┌─────────────┐ ┌─────────────┐
+        │   │ Dashboard   │ │ Management  │
+        │   │ (Charts)    │ │ (CRUD)      │
+        │   └─────────────┘ └─────────────┘
+        │          │                 │
+        │          │                 │
+        └──────────┼─────────────────┘
+                   │
+            ┌─────────────┐
+            │   MODELS    │
+            │ (Database)  │
+            └─────────────┘
+                   │
+            ┌─────────────┐
+            │ PostgreSQL  │
+            │  Database   │
+            └─────────────┘
+                   │
+                   │
+         ┌─────────┴─────────┐
+         │                   │
+  ┌─────────────┐    ┌─────────────┐
+  │  API CALLS  │    │   MOBILE    │
+  │ (JWT Auth)  │    │    USER     │
+  └─────────────┘    └─────────────┘
+         │                   │
+         │                   │
+  ┌─────────────┐    ┌─────────────┐
+  │ ApiAuth     │    │ Register/   │
+  │ Filter      │    │ Login       │
+  └─────────────┘    └─────────────┘
+         │                   │
+         │                   │
+  ┌─────────────┐    ┌─────────────┐
+  │ API         │    │ Pengaduan   │
+  │ Controllers │    │ CRUD        │
+  └─────────────┘    └─────────────┘
+```
+
+---
+
+## 7. FITUR UTAMA
+
+### Dashboard Admin
+
+- **Statistik Real-time**: Total, pending, diproses, selesai, ditolak
+- **Chart Visualisasi**: Doughnut chart status, line chart trend bulanan
+- **Recent Data**: 10 pengaduan terbaru dengan aksi cepat
+- **User Management**: Khusus role Master
+
+### Pengaduan Management
+
+- **Filter Advanced**: Status, kategori, instansi, tanggal, pencarian
+- **Detail View**: Info lengkap + foto bukti + komentar + history
+- **Status Update**: Workflow pending → diproses → selesai/ditolak
+- **Comment System**: Internal/public comments dengan edit capability
+
+### Mobile Integration
+
+- **JWT Authentication**: Secure API access
+- **CRUD Operations**: Create, read, update, delete pengaduan
+- **File Upload**: Foto bukti dengan preview
+- **Real-time Status**: Tracking status pengaduan
+
+---
+
+## 8. SECURITY FEATURES
+
+- **CSRF Protection**: Semua form admin
+- **JWT Expiration**: 24 jam untuk mobile
+- **Role-based Access**: Hierarchy enforcement
+- **SQL Injection Prevention**: Model-based queries
+- **Password Hashing**: PHP password_hash()
+- **CORS Configuration**: API mobile access
+
+---
+
+## 9. DEPLOYMENT NOTES
+
+### Requirements
 
 - PHP 8.1+
 - PostgreSQL 12+
 - Composer
-- Web server (Apache/Nginx)
+- Node.js (untuk mobile development)
 
-### Setup Steps
+---
 
-1. **Clone Repository**
-
-   ```bash
-   git clone <repository-url>
-   cd serverpengaduan
-   ```
-
-2. **Install Dependencies**
-
-   ```bash
-   composer install
-   ```
-
-3. **Environment Configuration**
-
-   ```bash
-   cp .env.example .env
-   ```
-
-   Edit `.env` file dengan konfigurasi database dan aplikasi Anda.
-
-4. **Database Setup**
-
-   ```bash
-   # Buat database PostgreSQL
-   createdb pengaduan_kominfo
-
-   # Jalankan migration
-   php spark migrate
-
-   # Jalankan seeder (optional)
-   php spark db:seed UserSeeder
-   php spark db:seed InstansiSeeder
-   php spark db:seed KategoriSeeder
-   ```
-
-5. **Set Permissions**
-
-   ```bash
-   chmod -R 755 writable/
-   chmod -R 755 public/uploads/
-   ```
-
-6. **Generate JWT Secret**
-   ```bash
-   # Generate secure JWT secret key (32+ characters)
-   openssl rand -base64 32
-   ```
-   Update `JWT_SECRET_KEY` di file `.env`
-
-## API Documentation
-
-### Authentication Endpoints
-
-#### POST /api/auth/register
-
-Registrasi user baru
-
-```json
-{
-  "name": "John Doe",
-  "email": "john@example.com",
-  "phone": "081234567890",
-  "password": "password123",
-  "password_confirm": "password123",
-  "instansi_id": 1
-}
-```
-
-#### POST /api/auth/login
-
-Login user
-
-```json
-{
-  "email": "john@example.com",
-  "password": "password123"
-}
-```
-
-### Pengaduan Endpoints
-
-#### GET /api/pengaduan
-
-Get list pengaduan user
-**Headers**: `Authorization: Bearer <token>`
-**Query params**: `page`, `limit`, `status`, `search`
-
-#### POST /api/pengaduan
-
-Submit pengaduan baru
-**Headers**: `Authorization: Bearer <token>`
-
-```json
-{
-  "instansi_id": 1,
-  "kategori_id": 1,
-  "deskripsi": "Deskripsi pengaduan",
-  "foto_bukti": ["filename1.jpg", "filename2.jpg"]
-}
-```
-
-### File Upload
-
-#### POST /api/upload
-
-Upload file gambar
-**Headers**: `Authorization: Bearer <token>`
-**Content-Type**: `multipart/form-data`
-**Files**: `files[]` (max 5MB per file, format: jpg,jpeg,png)
-
-## Security Configuration
-
-### CSP Headers
-
-```php
-Content-Security-Policy: default-src 'self';
-script-src 'self' 'nonce-{random}' https://cdn.jsdelivr.net;
-style-src 'self' 'unsafe-inline' https://fonts.googleapis.com;
-img-src 'self' data: https:;
-font-src 'self' https://fonts.gstatic.com;
-```
-
-### Rate Limiting
-
-- API endpoints: 60 requests/minute per IP
-- Login endpoints: 5 attempts/minute per IP
-- File upload: 10 uploads/minute per user
-
-## License
-
-Copyright © 2025 Dinas Kominfo Gunung Kidul. All rights reserved.
+Dokumentasi ini memberikan overview lengkap tentang arsitektur, alur kerja, dan implementasi sistem pengaduan. Untuk pengembangan lebih lanjut, pastikan mengikuti pola yang sudah ada dan mempertahankan konsistensi role-based access control.
